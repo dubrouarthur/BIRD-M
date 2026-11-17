@@ -9,7 +9,7 @@ synthèses), fine-tuné en LoRA depuis [Qwen/Qwen3.8-27B](https://huggingface.co
 ```
 configs/mix.yaml ──► scripts/distill.py ──► scripts/build_dataset.py --push ──► scripts/launch.py train ──► launch.py merge ──► scripts/publish.py
  (quotas, base)      Qwen3.8-27B répond     mix + split éval → dataset privé     HF Jobs (H200), LoRA     modèle complet      bucket → repo modèle
-                     lui-même (raisonnement)  adubrou/bird-medium-sft             → bucket bird-m-runs     (vision intacte)    adubrou/Bird-Medium
+                     lui-même (raisonnement)  adubrou/bird-medium-sft             → bucket bird-m-runs     (vision intacte)    adubrou/BIRD-M
 ```
 
 | Étape | Commande |

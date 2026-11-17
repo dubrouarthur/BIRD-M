@@ -1,7 +1,7 @@
 """Publie un dossier du bucket (adaptateur ou modèle fusionné) dans le repo modèle, fichier par fichier.
 
-  python scripts/publish.py bird-medium-v1/merged            # -> cfg.hub_model (privé)
-  python scripts/publish.py bird-medium-v1/adapter --repo adubrou/Bird-Medium-LoRA
+  python scripts/publish.py bird-medium-v1/merged            # -> cfg.hub_model (adubrou/BIRD-M, privé)
+  python scripts/publish.py bird-medium-v1/adapter --card model_card/ADAPTER.md   # adaptateur seul
 Le disque local est limité : un fichier à la fois, supprimé après envoi. Les fichiers déjà publiés sont sautés.
 """
 

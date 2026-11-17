@@ -3,7 +3,7 @@
 # Raisonnement : general_fr, finance_fr, distill et ~50 % d'identity sont en mode <think> ; le reste sans.
 base_model: Qwen/Qwen3.8-27B
 hub_dataset: adubrou/bird-medium-sft      # privé
-hub_model: adubrou/Bird-Medium            # privé
+hub_model: adubrou/BIRD-M               # privé (vidé le 17/11 pour Bird-Medium)
 bucket: adubrou/bird-m-runs               # checkpoints (monté dans les Jobs)
 seed: 0
 eval_fraction: 0.02

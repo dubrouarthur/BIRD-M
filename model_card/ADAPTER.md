@@ -21,8 +21,8 @@ import torch
 from peft import PeftModel
 from transformers import AutoModelForCausalLM, AutoTokenizer
 base = AutoModelForCausalLM.from_pretrained("Qwen/Qwen3.8-27B", dtype=torch.bfloat16, device_map="auto")
-model = PeftModel.from_pretrained(base, "adubrou/Bird-Medium-LoRA")
-tok = AutoTokenizer.from_pretrained("adubrou/Bird-Medium-LoRA")
+model = PeftModel.from_pretrained(base, "adubrou/BIRD-M")
+tok = AutoTokenizer.from_pretrained("adubrou/BIRD-M")
 ```
 
 Pour un checkpoint complet (vLLM, Inference Endpoints), fusionner avec `scripts/merge_job.py` du dépôt du projet.

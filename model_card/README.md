@@ -20,7 +20,7 @@ fine-tuning LoRA, fusionné dans un checkpoint complet. Le **raisonnement** du m
 
 ```python
 from transformers import AutoModelForImageTextToText, AutoProcessor
-model_id = "adubrou/Bird-Medium"
+model_id = "adubrou/BIRD-M"
 processor = AutoProcessor.from_pretrained(model_id)
 model = AutoModelForImageTextToText.from_pretrained(model_id, dtype="auto", device_map="auto")
 messages = [{"role": "user", "content": "Rédige un mail de relance pour une facture impayée de 1 250 € HT."}]
@@ -32,7 +32,7 @@ print(processor.decode(out[0, inputs["input_ids"].shape[1]:], skip_special_token
 
 - `enable_thinking=True` (par défaut) : le modèle raisonne dans `<think>…</think>` avant de répondre (calculs, analyses).
 - `enable_thinking=False` : réponse directe (mails, reformulation).
-- vLLM : `vllm serve adubrou/Bird-Medium --reasoning-parser qwen3`.
+- vLLM : `vllm serve adubrou/BIRD-M --reasoning-parser qwen3`.
 
 ## Données d'entraînement
 
