@@ -36,15 +36,12 @@ datasets:
 
 ## What is new
 
-- **BIRD-M Skill Protocol.** 211 special tokens placed in Qwen3.8's unused padded embedding rows (ids 248077–248287), so the architecture is unchanged.
-  - **Routing:** skills are bound in context to pointer slots. Routing is a constrained 1-token decision, auditable and maskable per user role.
-  - **Loading:** a skill body is only loaded when the model invokes it.
-  - **Reasoning budget:** set by the invoked skill (`compute: direct | short | full`).
-  - Spec and reference implementation: [`docs/SKILL_PROTOCOL.md`](https://github.com/dubrouarthur/BIRD-M/blob/main/docs/SKILL_PROTOCOL.md).
+- **Company skills (text mode).** A company describes its procedures, writing charter and policies as short `SKILL.md` files. A catalogue of their names and descriptions goes in the system prompt, and the full text of a skill is inserted when it is needed. BIRD-M is trained on such conversations, with policies taking precedence over user requests. The model's weights never need to change.
+- **Special-token skill routing (experimental, not recommended in v0.1).** The BIRD-M Skill Protocol adds 211 tokens in Qwen3.8's unused embedding rows, for 1-token routing that is auditable and can be masked per user role. In this pilot it is **under-trained**: it mostly declines to invoke a skill (see *Evaluation*). Use text mode instead.
 - **BIRD-Deck.** A semantic slide format with 13 layouts, density limits and a validator. The model chooses the content and the layouts; the renderer owns the design.
 - **Verifiable data.** BIRD-World fictional companies with coherent multi-year accounts, so every figure in the finance tasks has an exact ground truth.
 
-## Training data (v1 mix: 5,951 examples, 4.59 M tokens)
+## Training data (v1 mix: 6,351 examples, 4.64 M tokens)
 
 The provenance of every source was checked on its dataset card. Answers come only from humans or from open-weight models with permissive licenses. No outputs from closed models are used.
 
@@ -80,7 +77,19 @@ Full details: [`docs/DATASETS.md`](https://github.com/dubrouarthur/BIRD-M/blob/m
 
 ## Evaluation
 
-`<RESULTS>`
+Pilot evaluation on BIRD-Bench (held-out fictional companies and skills, greedy decoding, non-thinking mode):
+
+| Test | n | BIRD-M v0.1 |
+|---|---:|---:|
+| Finance: ratios, SIG and cash-flow bridge, every figure exact | 30 | **43.3 %** |
+| Special-token routing, unseen skills: "no skill needed" | 23 | 95.7 % |
+| Special-token routing, unseen skills: policy forbids the request | 9 | 100 % |
+| Special-token routing, unseen skills: pick the right skill | 52 | 7.7 % |
+| Special-token routing, unseen skills: compose two skills | 16 | 0 % |
+
+Reading these results:
+- **Finance:** the base model scored 18 % on an earlier version of these prompts that did not state the calculation conventions. A like-for-like comparison is planned for v0.2.
+- **Special-token routing:** under-trained in this pilot (1,000 episodes). The model defaults to "no skill". Skills should be used in text mode.
 
 BIRD-Bench uses **fictional companies and skills that are never seen during training**:
 
@@ -105,7 +114,7 @@ print(tok.decode(model.generate(ids, max_new_tokens=600)[0, ids.shape[1]:], skip
 
 **vLLM / Inference Endpoints**: deploy `adubrou/BIRD-M` exactly like `Qwen/Qwen3.8-27B`, on 1× A100 80 GB or 1× H200 in bf16. Recommended sampling, as for the base model in non-thinking mode: `temperature=0.7, top_p=0.8, top_k=20`. BIRD-M is trained to answer directly; pass `enable_thinking=False` in `chat_template_kwargs`.
 
-**Skill routing (BSP)**: use `RoutingSession` from the reference implementation (`bird_m/skills`). It provides constrained decoding, the stable slot binding and the `logit_bias` that bans unbound slots.
+**Company skills (recommended: text mode)**: put a catalogue of the skills (name, description, when to use) in the system prompt, then insert the full text of the relevant skill when needed, or ask the model which skill applies. The special-token router (`bird_m/skills/RoutingSession`) is experimental.
 
 ## Limitations
 
