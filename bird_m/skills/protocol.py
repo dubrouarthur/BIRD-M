@@ -37,6 +37,14 @@ from .skill import Skill
 
 MAX_INVOCATIONS = 3
 NON_THINKING_PREFILL = "<think>\n\n</think>\n\n"
+THINK_OPEN = "<think>\n"
+THINK_BUDGET = {"direct": 0, "short": 512, "full": 4096}  # max reasoning tokens per compute level
+_LEVEL = {"direct": 0, "short": 1, "full": 2}
+
+
+def compute_level(skills: list[Skill]) -> str:
+    """Reasoning budget of a turn = the most demanding invoked skill."""
+    return max((s.compute for s in skills), key=_LEVEL.__getitem__, default="direct")
 _RESERVED_RE = re.compile(spec.RESERVED_PATTERN)
 _CONTROL_RE = re.compile(r"<\|[A-Za-z_0-9]+\|>")
 
@@ -149,6 +157,7 @@ def render_conversation(
     catalog: list[str],
     messages: list[dict],
     rng: random.Random | None = None,
+    auto_compute: bool = False,
 ) -> list[Segment]:
     """Render one training example into loss-masked segments.
 
@@ -156,6 +165,8 @@ def render_conversation(
               {"role": "assistant", "content": str, "invoke": [names], "thinking": str|None}
     Policy skills in `catalog` are always injected and are not invocable.
     The assistant layout is byte-identical to what RoutingSession produces at inference.
+    auto_compute=True: skill-driven reasoning (see RoutingSession.auto_compute); the 'thinking'
+    field must then agree with the invoked skills' compute level.
     """
     unknown = [n for n in catalog if n not in skills]
     if unknown:
@@ -200,9 +211,23 @@ def render_conversation(
         thinking = msg.get("thinking")
         if thinking:
             thinking = _check_target(thinking, "thinking", _RESERVED_RE)
+        if auto_compute and invoked:
+            level = compute_level([skills[n] for n in invoked])
+            if level == "direct":
+                if thinking:
+                    raise ProtocolError("thinking given but invoked skills are compute=direct")
+                segs.append(Segment(NON_THINKING_PREFILL, False))  # runtime pre-fills
+            else:
+                if not thinking:
+                    raise ProtocolError(f"compute={level} skill invoked but no thinking provided")
+                segs.append(Segment(THINK_OPEN, False))  # runtime opens the reasoning block
+                segs.append(Segment(f"{thinking}\n</think>\n\n", True))
+        elif thinking:
             segs.append(Segment(f"<think>\n{thinking}\n</think>\n\n", True))
         else:
-            segs.append(Segment(NON_THINKING_PREFILL, False))
+            # auto mode without skill: the model itself learns to skip reasoning (trained);
+            # legacy mode: the runtime pre-fills (not trained)
+            segs.append(Segment(NON_THINKING_PREFILL, auto_compute))
         content = _check_target(msg["content"], "assistant content", _CONTROL_RE)
         segs.append(Segment(content + "<|im_end|>", True))
         segs.append(Segment("\n", False))
@@ -223,6 +248,8 @@ class RoutingSession:
     binding: dict[str, int]
     skills: dict[str, Skill]
     enable_thinking: bool = False
+    auto_compute: bool = False  # skill-driven reasoning budget (overrides enable_thinking)
+    think_budget: int | None = None  # set when routing ends: max reasoning tokens, None = model decides
     max_invocations: int = MAX_INVOCATIONS
     invoked: list[str] = field(default_factory=list)  # audit log, in order
     _state: str = "decide"  # decide -> (slot -> decide)* -> done
@@ -254,6 +281,12 @@ class RoutingSession:
         if self._state == "decide":
             if token_id == spec.TOKEN_IDS[spec.NONE]:
                 self._state = "done"
+                if self.auto_compute:
+                    if not self.invoked:
+                        return ""  # no skill: the model decides (trained to skip reasoning on simple tasks)
+                    level = compute_level([self.skills[n] for n in self.invoked])
+                    self.think_budget = THINK_BUDGET[level]
+                    return NON_THINKING_PREFILL if level == "direct" else THINK_OPEN
                 return "" if self.enable_thinking else NON_THINKING_PREFILL
             self._state = "slot"
             return ""

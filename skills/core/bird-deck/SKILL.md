@@ -6,6 +6,7 @@ type: template
 lang: [fr, en]
 version: 0.1.0
 owner: bird-models
+compute: short
 ---
 
 # BIRD-Deck : produire une présentation

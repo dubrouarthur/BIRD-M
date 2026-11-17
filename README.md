@@ -9,6 +9,7 @@ Modèle de langage pour les entreprises françaises (FR/EN), dérivé de [Qwen3.
 | [docs/SKILL_PROTOCOL.md](docs/SKILL_PROTOCOL.md) | Spécification de l'innovation BSP |
 | [docs/SKILLS_STRATEGY.md](docs/SKILLS_STRATEGY.md) | Pourquoi et comment les skills rendent le modèle plus performant |
 | [docs/DATASETS.md](docs/DATASETS.md) | Les datasets à créer (BIRD-World, 11 configs, BIRD-Bench) |
+| [docs/INNOVATIONS.md](docs/INNOVATIONS.md) | Innovations techniques priorisées (coût, vitesse, qualité) |
 
 Hugging Face (privé) : modèle [`adubrou/BIRD-M`](https://huggingface.co/adubrou/BIRD-M) · données [`adubrou/bird-m-sft`](https://huggingface.co/datasets/adubrou/bird-m-sft) · éval [`adubrou/bird-bench`](https://huggingface.co/datasets/adubrou/bird-bench)
 

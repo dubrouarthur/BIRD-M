@@ -12,6 +12,7 @@ from bird_m.skills import (
     logit_bias,
     parse_skill,
     NON_THINKING_PREFILL,
+    THINK_OPEN,
     RoutingSession,
     render_conversation,
     sanitize,
@@ -319,3 +320,58 @@ def test_turn_separator_newline_not_trained():
     segs = _render([])
     assert segs[-1] == type(segs[-1])("\n", False)
     assert segs[-2].text.endswith("<|im_end|>") and segs[-2].train
+
+
+# ------------------------------------------------------------------ skill-driven compute budget
+def _with_compute(name: str, compute: str):
+    return parse_skill(f"---\nname: {name}\ndescription: d {name}\ncompute: {compute}\n---\ncorps {name}")
+
+
+COMPUTE_SKILLS = {n: _with_compute(n, c) for n, c in (("mail", "direct"), ("analyse", "full"), ("formule", "short"))}
+
+
+def test_compute_field_parsed_and_validated():
+    assert COMPUTE_SKILLS["analyse"].compute == "full"
+    assert parse_skill("---\nname: x\ndescription: d\n---\nb").compute == "direct"
+    with pytest.raises(SkillError):
+        _with_compute("x", "turbo")
+
+
+@pytest.mark.parametrize(
+    "invoke,thinking,expected_tail,budget",
+    [
+        (["mail"], None, NON_THINKING_PREFILL, 0),
+        (["formule"], "calcul", THINK_OPEN, 512),
+        (["mail", "analyse"], "analyse", THINK_OPEN, 4096),  # most demanding skill wins
+        ([], None, "", None),  # no skill: the model decides
+    ],
+)
+def test_auto_compute_runtime_matches_training(invoke, thinking, expected_tail, budget):
+    names = list(COMPUTE_SKILLS)
+    msgs = [{"role": "user", "content": "q"}, {"role": "assistant", "content": "r", "invoke": invoke, "thinking": thinking}]
+    segs = render_conversation("s", COMPUTE_SKILLS, names, msgs, auto_compute=True)
+    b = bind_slots(names)
+    s = RoutingSession(b, COMPUTE_SKILLS, auto_compute=True)
+    produced = ""
+    for n in invoke:
+        produced += spec.INVOKE + s.feed(spec.TOKEN_IDS[spec.INVOKE])
+        produced += spec.slot_token(b[n]) + s.feed(spec.SLOT_IDS[b[n]])
+    tail = s.feed(spec.TOKEN_IDS[spec.NONE])
+    assert tail == expected_tail and s.think_budget == budget
+    text = "".join(x.text for x in segs)
+    start = text.rindex("<|im_start|>assistant\n") + len("<|im_start|>assistant\n")
+    assert text[start:].startswith(produced + spec.NONE + tail)
+    # what the runtime injects is never trained; what the model must generate is
+    injected = [x for x in segs if x.text in (NON_THINKING_PREFILL, THINK_OPEN)]
+    if invoke:
+        assert all(not x.train for x in injected)
+    else:
+        assert injected and injected[0].train  # model learns to skip reasoning itself
+
+
+def test_auto_compute_rejects_inconsistent_examples():
+    msgs = lambda inv, th: [{"role": "user", "content": "q"}, {"role": "assistant", "content": "r", "invoke": inv, "thinking": th}]
+    with pytest.raises(ProtocolError):
+        render_conversation("s", COMPUTE_SKILLS, list(COMPUTE_SKILLS), msgs(["mail"], "pense"), auto_compute=True)
+    with pytest.raises(ProtocolError):
+        render_conversation("s", COMPUTE_SKILLS, list(COMPUTE_SKILLS), msgs(["analyse"], None), auto_compute=True)

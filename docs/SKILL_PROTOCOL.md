@@ -102,6 +102,7 @@ Un dossier par skill avec un fichier `SKILL.md` (front-matter YAML + Markdown). 
 | `roles`            | `[finance, commercial]`                                     | RBAC : filtre du catalogue et `logit_bias`  |
 | `version`, `owner` | `1.2.0`, `direction-financiere`                             | Audit                                       |
 | `priority`         | `100`                                                       | Ordre des politiques                        |
+| `compute` | `direct` · `short` · `full` | Budget de raisonnement appliqué quand la skill est invoquée (`RoutingSession(auto_compute=True)`). Voir `INNOVATIONS.md` §1 |
 | `lang`             | `[fr, en]`                                                  | Filtrage                                    |
 
 Exemples : `examples/skills/`.

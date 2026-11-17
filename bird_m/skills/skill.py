@@ -15,6 +15,7 @@ import yaml
 from . import spec
 
 SKILL_TYPES = ("procedure", "style", "knowledge", "template", "policy")
+COMPUTE_LEVELS = ("direct", "short", "full")  # reasoning budget applied when the skill is invoked
 _NAME_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}$")
 _FRONT_RE = re.compile(r"\A---\s*\n(.*?)\n---\s*\n?(.*)\Z", re.DOTALL)
 
@@ -35,6 +36,7 @@ class Skill:
     owner: str = ""
     roles: tuple[str, ...] = ()  # empty = everyone
     priority: int = 0
+    compute: str = "direct"  # direct | short | full (skill-driven reasoning budget)
 
     @property
     def is_policy(self) -> bool:
@@ -94,6 +96,9 @@ def parse_skill(text: str) -> Skill:
         raise SkillError(f"invalid type {stype!r}, expected one of {SKILL_TYPES}")
     if not body:
         raise SkillError("skill body is empty")
+    compute = _str(meta, "compute", "direct")
+    if compute not in COMPUTE_LEVELS:
+        raise SkillError(f"invalid compute {compute!r}, expected one of {COMPUTE_LEVELS}")
     raw_prio = _str(meta, "priority", "0")
     if not re.fullmatch(r"-?\d+", raw_prio):
         raise SkillError(f"priority must be an integer, got {raw_prio!r}")
@@ -109,6 +114,7 @@ def parse_skill(text: str) -> Skill:
         owner=_str(meta, "owner"),
         roles=_strs(meta, "roles", ()),  # absent = everyone; explicit empty list is rejected
         priority=int(raw_prio),
+        compute=compute,
     )
 
 
