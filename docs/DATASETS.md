@@ -49,13 +49,39 @@ Pourquoi c'est plus performant :
 
 **Total SFT ≈ 250 000 exemples**, soit environ 375 millions de tokens, plus 35 000 paires de préférence.
 
-### Sources de textes réels (documents d'entrée uniquement, licence à vérifier par sous-collection)
+### Datasets réutilisables depuis le Hub (licences vérifiées sur les cartes le 17/11/2026)
 
-| Source                                                                                             | Licence                                | Usage                                                                                               |
-| -------------------------------------------------------------------------------------------------- | -------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| [`AgentPublic/open_government`](https://huggingface.co/datasets/AgentPublic/open_government)       | Apache 2.0                             | Textes administratifs, juridiques et financiers FR/UE → synthèse, Q&A documentaire, appels d'offres |
-| [`PleIAs/common_corpus`](https://huggingface.co/datasets/PleIAs/common_corpus)                     | Ouvertes (variables selon le document) | Textes FR propres → base de `correction`                                                            |
-| [`LiquidAI/structured-extraction`](https://huggingface.co/datasets/LiquidAI/structured-extraction) | Apache 2.0, fictif                     | Graines d'extraction et contrôle croisé de `tools`                                                  |
+Critères : licence commerciale (Apache 2.0, MIT, CC-BY-4.0, CC0, ODC-BY, Licence Ouverte Etalab) **et** provenance propre, c'est-à-dire des réponses produites par des humains ou par des modèles ouverts. Un dataset « Apache » dont les réponses viennent de GPT-4, Claude ou Gemini est **exclu** comme cible d'entraînement.
+
+| Dataset | Licence | Taille | Provenance | Usage BIRD-M | Volume pris |
+|---|---|---|---|---|---|
+| `HuggingFaceTB/smoltalk2` (sous-ensembles Qwen3, dont multilingue FR) | Apache 2.0 (nouveaux sous-ensembles) | ~245 000 multilingues | Qwen3-32B ✅ | `replay` FR/EN, suivi d'instructions | ~20 000 |
+| `nvidia/Nemotron-Post-Training-Dataset-v2` (accès à demander) | CC-BY-4.0 | millions, dont FR | DeepSeek-R1 et Qwen ✅ | `replay` FR : raisonnement, chat | ~10 000 |
+| `nvidia/Nemotron-Post-Training-Dataset-v1` | CC-BY-4.0 (usage commercial) | 10 M+ | DeepSeek-R1, Qwen3 ✅ | `tools` et `replay` | ~10 000 |
+| `CohereForAI/aya_dataset` | Apache 2.0 | ~200 000 | **humains**, dont FR ✅ | `tasks` FR (style naturel) | ~5 000 FR |
+| `OpenAssistant/oasst2` | Apache 2.0 | ~100 000 | **humains**, dont FR ✅ | `tasks` et `pref` | ~5 000 |
+| `nvidia/HelpSteer3` | CC-BY-4.0 | ~40 000 | annotations humaines, modèles ouverts, multilingue ✅ | `pref` (DPO), calibration du juge | totalité |
+| `nvidia/HelpSteer2` | CC-BY-4.0 | ~20 000 | annotations humaines ✅ | `pref` | totalité |
+| `Salesforce/xlam-function-calling-60k` (accès à demander) | CC-BY-4.0 | 60 000 | DeepSeek-V2, Mixtral, appels vérifiés ✅ | `tools` | ~15 000 |
+| `nvidia/When2Call` | CC-BY-4.0 | petit | à confirmer | `tools` : quand appeler ou refuser | totalité |
+| `ibm-research/finqa` | CC-BY-4.0 | ~8 000 | **humains** (rapports financiers) ✅ | `finance` : calculs sur états | totalité |
+| `next-tat/TAT-QA` | CC-BY-4.0 | ~16 000 | **humains** (tableaux et texte) ✅ | `finance` : questions sur tableaux | totalité |
+| `gretelai/synthetic_text_to_sql` | Apache 2.0 | ~100 000 | Gretel Navigator (mélange de modèles non publié) ⚠️ | `sql` : prompts et schémas, réponses à re-vérifier | ~8 000 |
+| `nvidia/Aegis-AI-Content-Safety-Dataset-2.0` | CC-BY-4.0 | ~30 000 | Mistral et Mixtral ✅ | `trust` | ~3 000 |
+| `Benitoow/OfficeSmith-PPTX-IR` | Apache 2.0 | 958 | Qwen3.5-397B ✅ | `deck` : graines brief → slides, converties en BIRD-Deck | totalité |
+| `sinabis-group/sinabis-100k-synthetic-pptx` | CC-BY-4.0 | 100 000 .pptx | générateur non nommé ⚠️ | `deck` : extraire des **structures** de decks (plans, enchaînements), jamais le texte | ~5 000 |
+| `nvidia/Nemotron-Personas-France` | CC-BY-4.0 | grand | synthétique ✅ | **Personas FR** pour BIRD-World (diversité des rôles et des styles) | ~2 000 |
+| `AgentPublic/open_government` | Apache 2.0 | ~380 Md de tokens | documents publics ✅ | Documents d'entrée : synthèse, appels d'offres, finance publique | à la demande |
+| `AgentPublic/legi` | Licence Ouverte (Etalab 2.0) | 1 M+ | Légifrance ✅ | Questions-réponses juridiques **avec citations** | à la demande |
+| `LiquidAI/structured-extraction` | Apache 2.0 | 6 500 | fictif ✅ | `tools` : extraction vers JSON | totalité |
+| `juancavallotti/multilingual-gec` | Apache 2.0 | 100 000+ | erreurs générées par règles | `correction` : graines FR (phrases simples) | ~5 000 FR |
+| `HuggingFaceFW/fineweb-2` (FR) | ODC-BY | énorme | web | Textes propres pour l'injection d'erreurs (`correction`) | ~20 000 extraits |
+
+**Bilan** : environ **150 000 exemples réutilisables**, dont environ 60 000 utilisés comme cibles directes (rejeu, outils, finance, préférences humaines) et le reste comme graines ou documents. Les ~250 000 exemples SFT restent **majoritairement générés par nous** (BIRD-World et Core Skills), car **rien sur le Hub ne couvre nos tâches cœur** : e-mails d'entreprise FR, comptes rendus, decks au format BIRD-Deck, routage de skills.
+
+**À ne pas utiliser** : `openbmb/UltraFeedback` (réponses GPT-4), `allenai/tulu-3-*` et `WildChat` (GPT-4o / Claude, parties non commerciales), `moncefem/legi-instruct-fr` (Gemini), `HuggingFaceH4/no_robots` et `APIGen-MT` (non commercial), `Spider` / `BIRD-SQL` / Wikipédia (ShareAlike), les datasets FR de type Alpaca (traductions de sorties GPT).
+
+**Manques** : aucun corpus parallèle FR↔EN permissif n'a pu être vérifié sur le Hub (Europarl, OPUS : licence « unknown »). On vérifiera les conditions à la source, ou on fera de la rétro-traduction avec Qwen. Aucun corpus FR de correction annoté par des humains n'existe : on le construira par injection d'erreurs.
 
 ## BIRD-Bench (évaluation, `adubrou/bird-bench`)
 
