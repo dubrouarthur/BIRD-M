@@ -3,7 +3,8 @@ from .protocol import (
     Segment,
     bind_slots,
     logit_bias,
-    pending_injection,
+    NON_THINKING_PREFILL,
+    RoutingSession,
     render_conversation,
     sanitize,
 )
@@ -19,7 +20,8 @@ __all__ = [
     "load_skill",
     "logit_bias",
     "parse_skill",
-    "pending_injection",
+    "NON_THINKING_PREFILL",
+    "RoutingSession",
     "render_conversation",
     "sanitize",
 ]

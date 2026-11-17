@@ -48,8 +48,13 @@ En production, la liaison est **déterministe** (hachage du nom). Un même catal
 
 ### 3.3 Routage en un token : mesurable, gouvernable, auditable
 
-Quand un catalogue est présent, la **première décision** du modèle est toujours, au choix :
-`<|skill_none|>` ou `<|skill_invoke|><|skill_k|>`.
+Quand un catalogue est présent, le début de la réponse suit une **grammaire fermée** :
+
+```
+( <|skill_invoke|> <|skill_k|> [contenu injecté] ){0,3}  <|skill_none|>
+```
+
+`<|skill_none|>` sert à la fois à dire « aucune skill » et « fin du routage ». Le modèle est toujours supervisé sur cette décision.
 
 Cela donne, en une seule passe :
 
@@ -61,13 +66,22 @@ Cela donne, en une seule passe :
 
 ```
 <|im_start|>assistant
-<|skill_invoke|><|skill_017|>                ← généré (arrêt sur slot)
+<|skill_invoke|><|skill_017|>                ← généré, token par token, sous contrainte
 <|skill_body_start|> …procédure… <|skill_body_end|>   ← injecté par le runtime
-<think>…</think>                              ← raisonnement optionnel
+<|skill_none|>                                ← généré : fin du routage
+<think>…</think>                              ← généré (thinking) ou pré-rempli vide par le runtime
 Objet : Facture n° 2026-118 – Niveau 1 …<|im_end|>
 ```
 
-Le runtime s'arrête sur n'importe quel slot (`stop_token_ids = SLOT_IDS`), injecte le contenu et reprend dans le **même tour** (`continue_final_message`). Il n'y a pas d'aller-retour d'outil et le cache est réutilisé. On peut enchaîner jusqu'à 3 skills (par exemple procédure + charte).
+Le routage est piloté par `RoutingSession`, un automate qui travaille **sur les IDs de tokens**. Le texte décodé ne convient pas, car les serveurs retirent les tokens spéciaux par défaut.
+
+1. Le runtime génère **1 token** en le contraignant à `allowed_next()` (`allowed_token_ids` de vLLM).
+2. `feed(token)` renvoie ce qu'il faut ajouter au préfixe : le contenu de la skill, rien, ou le pré-remplissage `<think>\n\n</think>\n\n` en mode sans raisonnement.
+3. Une fois `<|skill_none|>` émis, la réponse est générée librement avec `logit_bias(binding)`.
+
+Le routage coûte entre 1 et 7 tokens et reste dans le **même tour** : il n'y a pas d'aller-retour d'outil et le cache de préfixe est réutilisé. On peut enchaîner jusqu'à 3 skills (par exemple procédure + charte), sans jamais invoquer deux fois la même. Le test `test_runtime_output_matches_training_layout` garantit que le texte produit à l'inférence est **identique octet pour octet** à celui de l'entraînement.
+
+⚠️ Avec un catalogue, on n'utilise pas le pré-remplissage `enable_thinking=False` du template Qwen, qui placerait `<think></think>` *avant* le routage. Le runtime BSP s'en charge après `<|skill_none|>`. BIRD-M livrera son propre `chat_template`.
 
 ### 3.4 Skills compilées (v1.1, piste de recherche)
 
@@ -94,9 +108,11 @@ Exemples : `examples/skills/`.
 
 ## 5. Sécurité
 
-- **Injection de tokens** : le tokenizer de base a `split_special_tokens=False`. Un e-mail contenant littéralement `<|skill_invoke|>` deviendrait donc un vrai token de contrôle. `sanitize()` neutralise tout motif `<|…|>` dans les contenus utilisateur ou documentaires (espace insécable de largeur nulle). Test : `test_user_injection_is_neutralised` et contre le vrai tokenizer.
-- **Slot non lié** : il est bloqué par `logit_bias`, puis rejeté par `pending_injection()` en défense en profondeur.
-- **Boucle d'invocation** : plafond de 3 invocations par tour.
+- **Injection de tokens** : le tokenizer de base a `split_special_tokens=False`. Un texte contenant littéralement `<|skill_invoke|>`, `<|im_end|>` ou `</think>` deviendrait donc un vrai token. `sanitize()` neutralise ces motifs (espace de largeur nulle après `<`) dans **tout** ce que le runtime rend : messages utilisateur, prompt système, cartes, contenus de skills et politiques. Vérifié contre le vrai tokenizer.
+- **Auteurs de skills semi-fiables** : `parse_skill` rejette les tokens réservés et les retours à la ligne dans les champs de carte, ce qui empêche de forger un champ ou une politique. Le YAML est lu sans conversion implicite (`version: 1.10` reste `"1.10"`, `no` reste `"no"`). `roles: []` est refusé, pour ne pas ouvrir la skill à tous par erreur.
+- **Données d'entraînement** : une réponse ou un raisonnement cible qui contient des tokens de contrôle **rejette l'exemple** au lieu de l'entraîner.
+- **Génération** : le routage est contraint par `allowed_next()`. Ensuite, `logit_bias` interdit les slots non liés **et** les tokens réservés au runtime (contenu, politique, catalogue), si bien que le modèle ne peut pas forger un contenu de skill.
+- **Boucles** : plafond de 3 invocations réelles, comptées par l'automate et non dans le texte.
 - **Politiques contre utilisateur** : comportement entraîné (tâche `policy.obey`) et mesuré.
 
 ## 6. Ce que l'entraînement doit apprendre (tâches `agentique.*`)
@@ -115,5 +131,5 @@ Seules les décisions de routage et la réponse portent la perte. Le contenu inj
 
 ## 7. Implémentation de référence
 
-`bird_m/skills/` : `spec.py` (tokens et ids), `skill.py` (parse `SKILL.md`, RBAC), `protocol.py` (liaison, rendu masqué pour le SFT, `sanitize`, `logit_bias`, `pending_injection`).
-Tests : `pytest` (21 tests ; mettre `BIRD_M_TOKENIZER=…/tokenizer.json` pour vérifier contre le vrai tokenizer).
+`bird_m/skills/` : `spec.py` (tokens et ids), `skill.py` (parse `SKILL.md`, RBAC), `protocol.py` (liaison, rendu masqué pour le SFT, `sanitize`, `logit_bias`, `RoutingSession`).
+Tests : `pytest` (42 tests, dont les non-régressions issues de la revue adversariale ; mettre `BIRD_M_TOKENIZER=…/tokenizer.json` pour vérifier contre le vrai tokenizer).

@@ -55,3 +55,28 @@ SLOT_IDS: tuple[int, ...] = tuple(TOKEN_IDS[t] for t in SLOT_TOKENS)
 assert FIRST_FREE_ID + len(ALL_TOKENS) <= PADDED_VOCAB, (
     "BSP tokens overflow padded vocab"
 )
+
+# Qwen tags that the base tokenizer maps to single (non-"special") tokens.
+QWEN_TAG_TOKENS: tuple[str, ...] = (
+    "<think>",
+    "</think>",
+    "<tool_call>",
+    "</tool_call>",
+    "<tool_response>",
+    "</tool_response>",
+)
+# Anything an untrusted string must never contain verbatim: <|...|> control tokens + Qwen tags.
+RESERVED_PATTERN = r"<\|[A-Za-z_0-9]+\|>|</?(?:think|tool_call|tool_response)>"
+
+# Tokens the model must never generate itself (only the runtime writes them).
+RUNTIME_ONLY_TOKENS: tuple[str, ...] = (
+    CATALOG_START,
+    CATALOG_END,
+    SKILL_START,
+    SKILL_END,
+    BODY_START,
+    BODY_END,
+    POLICY_START,
+    POLICY_END,
+    MEM_PAD,
+)
