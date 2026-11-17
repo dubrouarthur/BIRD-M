@@ -1,14 +1,14 @@
 ---
 license: apache-2.0
 base_model: Qwen/Qwen3.8-27B
-library_name: peft
-pipeline_tag: text-generation
+library_name: transformers
+pipeline_tag: image-text-to-text
 language:
   - fr
   - en
 tags:
-  - lora
-  - peft
+  - qwen3_5
+  - fine-tuned
   - enterprise
   - french
   - business-writing
@@ -30,7 +30,7 @@ datasets:
 
 # BIRD-M v0.1 (pilot): enterprise assistant for French companies
 
-**BIRD-M** is a LoRA fine-tune of [Qwen/Qwen3.8-27B](https://huggingface.co/Qwen/Qwen3.8-27B) aimed at the everyday tasks of French companies, in French and English: business emails, documents, slide decks (BIRD-Deck JSON), financial analysis, structured extraction and the **BIRD-M Skill Protocol (BSP)**. BSP lets a company plug in its own procedures ("skills") without retraining, routes to them with a single token and controls access.
+**BIRD-M** is a fine-tune (LoRA, merged into the full weights) of [Qwen/Qwen3.8-27B](https://huggingface.co/Qwen/Qwen3.8-27B) aimed at the everyday tasks of French companies, in French and English: business emails, documents, slide decks (BIRD-Deck JSON), financial analysis, structured extraction and the **BIRD-M Skill Protocol (BSP)**. BSP lets a company plug in its own procedures ("skills") without retraining, routes to them with a single token and controls access.
 
 > ⚠️ **Pilot release (v0.1).** This is the first training run, made on a small budget (≈ 6k examples, 1 epoch). It is published to share progress and the method, not as a production model. See _Limitations_.
 
@@ -89,16 +89,23 @@ BIRD-Bench uses **fictional companies and skills that are never seen during trai
 
 ## How to use
 
-```python
-from transformers import AutoModelForCausalLM, AutoTokenizer
-from peft import PeftModel
+BIRD-M is a **full checkpoint** with the same architecture as Qwen3.8-27B (merged weights, vision tower kept). It runs anywhere the base model runs.
 
-base = AutoModelForCausalLM.from_pretrained("Qwen/Qwen3.8-27B", dtype="bfloat16", device_map="auto")
+**Transformers**
+
+```python
+from transformers import AutoModelForImageTextToText, AutoTokenizer
+
 tok = AutoTokenizer.from_pretrained("adubrou/BIRD-M")  # includes the 211 BSP tokens
-model = PeftModel.from_pretrained(base, "adubrou/BIRD-M")
+model = AutoModelForImageTextToText.from_pretrained("adubrou/BIRD-M", dtype="bfloat16", device_map="auto")
+msgs = [{"role": "user", "content": "Rédige un e-mail pour relancer un client sur une facture impayée de 4 200 €."}]
+ids = tok.apply_chat_template(msgs, add_generation_prompt=True, enable_thinking=False, return_tensors="pt").to(model.device)
+print(tok.decode(model.generate(ids, max_new_tokens=600)[0, ids.shape[1]:], skip_special_tokens=True))
 ```
 
-For skill routing, use `RoutingSession` from the reference implementation (`bird_m/skills`). It provides constrained decoding, the stable slot binding and the `logit_bias` that bans unbound slots.
+**vLLM / Inference Endpoints**: deploy `adubrou/BIRD-M` exactly like `Qwen/Qwen3.8-27B`, on 1× A100 80 GB or 1× H200 in bf16. Recommended sampling, as for the base model in non-thinking mode: `temperature=0.7, top_p=0.8, top_k=20`. BIRD-M is trained to answer directly; pass `enable_thinking=False` in `chat_template_kwargs`.
+
+**Skill routing (BSP)**: use `RoutingSession` from the reference implementation (`bird_m/skills`). It provides constrained decoding, the stable slot binding and the `logit_bias` that bans unbound slots.
 
 ## Limitations
 
