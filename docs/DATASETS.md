@@ -5,6 +5,7 @@ Dépôts (privés) : entraînement → [`adubrou/bird-m-sft`](https://huggingfac
 ## Principes
 
 1. **Les réponses cibles viennent de sources sous licence propre.** On auto-distille Qwen3.8-27B en mode thinking xhigh, avec best-of-n et un juge. On n'utilise jamais de sorties d'API fermées, dont les conditions interdisent d'entraîner un modèle concurrent. Les datasets FR existants sur le Hub (Alpaca traduits, souvent générés par GPT) servent **au mieux de graines de prompts**, jamais de cibles.
+   L'assistant de développement (Claude) écrit **les générateurs, les vérificateurs et les skills**, mais pas les réponses cibles : les conditions d'Anthropic interdisent d'utiliser ses sorties pour entraîner un modèle concurrent.
 2. **Tout ce qui est calculable est calculé.** Finance, Excel, JSON, routage et correction ont une vérité terrain exacte produite par du code. Le juge LLM ne sert que pour le style et la pertinence.
 3. **Un univers cohérent plutôt que des prompts isolés** : voir BIRD-World ci-dessous.
 4. **Aucune donnée personnelle réelle.** Les personnes, entreprises et IBAN sont fictifs, et les formats sont validés pour ne pas tomber sur un vrai identifiant.
@@ -103,6 +104,10 @@ graines (YAML) ──► vLLM (HF Jobs, Qwen3.8-27B) ──► filtres ──►
 ```
 
 Chaque étape est un script `config → run → stats JSON` qu'on peut relancer shard par shard. Une carte de dataset est générée automatiquement (volumes, distributions, scores).
+
+## État d'avancement
+
+- ✅ `finance` v0.1 : générateur BIRD-World (`bird_m/world/finance.py`), 5 types de tâches (`bird_m/data/finance_tasks.py`) et vérificateur de chiffres (`bird_m/data/checks.py`). **2 000 exemples pilote** publiés dans `adubrou/bird-m-sft` (config `finance`) et **300 exemples d'évaluation** dans `adubrou/bird-bench`, issus d'entreprises disjointes. 60 % sont des réponses exactes calculées, 40 % sont à faire rédiger par le teacher.
 
 ## Ordre de construction
 
