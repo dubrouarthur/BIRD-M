@@ -17,9 +17,16 @@ configs/mix.yaml ──► scripts/distill.py ──► scripts/build_dataset.py
 | Tests | `pip install -e '.[dev]' && pytest -q` |
 | Distillation (~5 $) | `python scripts/distill.py --n 1700` |
 | Dataset | `python scripts/build_dataset.py --push` |
-| Entraînement (budget 10 $) | `python scripts/launch.py train --flavor h200 --timeout 2h -- --caps general_fr=600,finance_en=800,tables_en=300 --max-eval 80 --time-budget 85 --gen-tokens 500 --flush-wait 120` |
+| Entraînement v1 (budget 10 $) | `python scripts/launch.py train --flavor h200 --timeout 105m -- --caps identity=300,emails=600,distill=450,finance_fr=300,slides=250,general_fr=250,finance_en=150,tables_en=100 --max-eval 60 --time-budget 78 --save-steps 50 --gen-tokens 400` |
 | Fusion | `python scripts/launch.py merge --timeout 2h -- --adapter /out/bird-medium-v1/adapter --out /out/bird-medium-v1/merged` |
 | Publication | `python scripts/publish.py bird-medium-v1/merged` |
+
+## Débit mesuré (H200, Qwen3.8-27B, LoRA r=32, bf16, gradient checkpointing)
+
+~30 s par pas de 16 séquences (~360 tokens/s) : `causal_conv1d` n'est pas installé dans le job, les couches
+à attention linéaire utilisent l'implémentation PyTorch de référence. Avec 10 $ (≈ 1 h 45 de H200), on vise une
+époque complète sur ~2 400 exemples (~150 pas) pour que le learning rate cosine aille jusqu'au bout, plutôt
+qu'un run plus gros interrompu en cours. Piste pour les runs suivants : image avec `causal-conv1d` précompilé.
 
 ## Données (voir `configs/mix.yaml`)
 
