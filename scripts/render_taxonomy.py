@@ -26,6 +26,7 @@ VALID = {
         "exact",
         "routing",
         "pairwise",
+        "render_judge",
     },
 }
 

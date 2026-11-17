@@ -5,7 +5,7 @@ Modèle de langage pour les entreprises françaises (FR/EN), dérivé de [Qwen3.
 | Document | Contenu |
 |---|---|
 | [docs/BLUEPRINT.md](docs/BLUEPRINT.md) | Plan global : objectifs, données, entraînement, budget, phases, risques |
-| [docs/TASKS.md](docs/TASKS.md) | Les 69 tâches d'entreprise ciblées (générée depuis `data/taxonomy/tasks.yaml`) |
+| [docs/TASKS.md](docs/TASKS.md) | Les 78 tâches d'entreprise ciblées (générée depuis `data/taxonomy/tasks.yaml`) |
 | [docs/SKILL_PROTOCOL.md](docs/SKILL_PROTOCOL.md) | Spécification de l'innovation BSP |
 
 ## Démarrage

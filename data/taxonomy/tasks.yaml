@@ -1,7 +1,7 @@
 # BIRD-M — taxonomie des tâches d'entreprise (source de vérité, docs/TASKS.md est généré)
 # priority : P0 = cœur v1 (fort volume, faible coût) · P1 = v1 si budget · P2 = v1.1
 # thinking : direct = sans raisonnement · short = raisonnement court · full = raisonnement complet
-# eval     : judge (LLM-juge + grille) · json_schema · formula_exec · grammar · exact · routing · pairwise
+# eval     : judge (LLM-juge + grille) · render_judge (rendu image + juge visuel) · json_schema · formula_exec · grammar · exact · routing · pairwise
 # Toutes les tâches existent en FR et en EN (+ traduction croisée quand pertinent).
 
 domains:
@@ -196,13 +196,13 @@ tasks:
       eval: judge,
     }
   - {
-      id: slides.json,
+      id: slides.deck,
       domain: presentation,
-      fr: "Slides détaillées en JSON (titre, puces, notes, visuel suggéré)",
-      en: "Slide-by-slide JSON (title, bullets, notes, visual)",
+      fr: "Deck complet au format BIRD-Deck (layouts, thème, graphiques, notes) pour l'éditeur web",
+      en: "Full deck in BIRD-Deck format (layouts, theme, charts, notes) for the web editor",
       priority: P0,
       thinking: short,
-      eval: json_schema,
+      eval: render_judge,
     }
   - {
       id: slides.from_doc,
@@ -211,7 +211,34 @@ tasks:
       en: "Turn a document into a deck",
       priority: P0,
       thinking: short,
-      eval: judge,
+      eval: render_judge,
+    }
+  - {
+      id: slides.edit,
+      domain: presentation,
+      fr: "Modifier un deck existant par opérations (ajouter, réordonner, restyler, raccourcir)",
+      en: "Edit an existing deck through operations",
+      priority: P0,
+      thinking: short,
+      eval: json_schema,
+    }
+  - {
+      id: slides.chart,
+      domain: presentation,
+      fr: "Choisir et spécifier le bon graphique à partir de données (type, axes, message clé)",
+      en: "Data to the right chart spec (type, axes, key message)",
+      priority: P0,
+      thinking: short,
+      eval: json_schema,
+    }
+  - {
+      id: slides.critique,
+      domain: presentation,
+      fr: "Critiquer une slide à partir de sa capture d'écran et proposer une version améliorée",
+      en: "Critique a slide from its screenshot and improve it",
+      priority: P1,
+      thinking: short,
+      eval: render_judge,
     }
   - {
       id: doc.structure,
@@ -480,9 +507,63 @@ tasks:
       domain: finance,
       fr: "Commentaire de reporting / écarts budgétaires",
       en: "Financial reporting commentary / variance analysis",
+      priority: P0,
+      thinking: full,
+      eval: judge,
+    }
+  - {
+      id: fin.statements,
+      domain: finance,
+      fr: "Analyser des états financiers (bilan, compte de résultat, SIG, BFR, flux de trésorerie)",
+      en: "Analyse financial statements",
+      priority: P0,
+      thinking: full,
+      eval: judge,
+    }
+  - {
+      id: fin.ratios,
+      domain: finance,
+      fr: "Calculer et interpréter des ratios (marges, rentabilité, endettement, liquidité)",
+      en: "Compute and interpret financial ratios",
+      priority: P0,
+      thinking: short,
+      eval: exact,
+    }
+  - {
+      id: fin.budget,
+      domain: finance,
+      fr: "Budget prévisionnel et plan de trésorerie (tableau + formules)",
+      en: "Budget and cash-flow forecast (table + formulas)",
+      priority: P1,
+      thinking: full,
+      eval: formula_exec,
+    }
+  - {
+      id: fin.valuation,
+      domain: finance,
+      fr: "Valorisation simplifiée (DCF, multiples) avec hypothèses explicites",
+      en: "Simplified valuation (DCF, multiples) with explicit assumptions",
+      priority: P1,
+      thinking: full,
+      eval: exact,
+    }
+  - {
+      id: fin.business_case,
+      domain: finance,
+      fr: "Business case / note d'investissement (ROI, scénarios, risques)",
+      en: "Business case / investment memo",
       priority: P1,
       thinking: full,
       eval: judge,
+    }
+  - {
+      id: fin.deck,
+      domain: finance,
+      fr: "Présentation de résultats financiers (deck BIRD-Deck avec graphiques)",
+      en: "Financial results deck (BIRD-Deck with charts)",
+      priority: P1,
+      thinking: full,
+      eval: render_judge,
     }
   - {
       id: fin.accounting_qa,

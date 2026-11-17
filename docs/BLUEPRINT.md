@@ -22,7 +22,7 @@ Critères de succès v1 (mesurés sur BIRD-Bench, §5) :
 
 ```
  tasks.yaml ──► générateur de prompts ──► teacher (génération) ──► filtres ──► juge ──► SFT mix
- (69 tâches)    personas × secteurs ×      Qwen3.8-27B thinking     dédup,       grille     │
+ (78 tâches)    personas × secteurs ×      Qwen3.8-27B thinking     dédup,       grille     │
                 langue × ton × contraintes  xhigh + best-of-n        langue, PII  par tâche  │
                                                                                              ▼
  skills synthétiques (≈ 3 000) ──► rendu BSP (liaison aléatoire) ───────────────────► SFT (LoRA + tokens)
@@ -65,11 +65,54 @@ Matériel (estimation à confirmer par un run pilote) : 8 × H100 80 Go, FSDP ou
 ~200 000 exemples × ~1 500 tokens × 2 epochs ≈ 600 millions de tokens, soit **~1 jour pour le SFT**. Génération des données avec vLLM sur les mêmes GPU : ~1 à 2 jours.
 **Ordre de grandeur du budget de calcul v1 : 3 000 à 6 000 € de GPU loués**, hors itérations et hors relecture humaine.
 
+## Axe prioritaire 1 : des slides magnifiques (BIRD-Deck)
+
+Un LLM qui écrit du HTML ou du .pptx « à la main » produit des slides moyennes : le design n'est pas son métier. On sépare donc les rôles :
+
+```
+modèle ──► BIRD-Deck (JSON sémantique) ──► moteur de design de l'éditeur web ──► rendu
+            contenu, choix de layout,       thèmes, grilles, typo,               │
+            message clé, données            charte de l'entreprise               ▼
+     ▲                                                                capture PNG
+     └──────────── récompense : schéma valide + densité + juge VISUEL ◄──┘ (Qwen3.8 est multimodal)
+```
+
+- **BIRD-Deck** : schéma JSON partagé entre le modèle et l'éditeur. Il comprend un catalogue fermé d'environ 15 layouts (titre, agenda, grand chiffre, deux colonnes, comparaison, graphique, chronologie, citation, image + texte, équipe, conclusion…). Chaque slide porte un *message clé* (titre-affirmation) et des limites de densité par layout, par exemple 6 puces de 12 mots au maximum. Les graphiques sont décrits par leurs données, et c'est l'éditeur qui les dessine.
+- **La charte de l'entreprise est une skill BSP** (`type: style` ou `template`) : couleurs, polices, logo, ton. Le même modèle produit ainsi des decks « à la marque » de chaque client.
+- **Entraînement** : SFT sur des decks de référence, puis **récompense vérifiable et visuelle** : schéma valide, densité respectée, rendu sans débordement (mesuré dans le navigateur), plus une note esthétique d'un juge vision sur la capture. C'est la tâche où le GRPO a le plus de valeur.
+- **Tâches** : `slides.deck`, `slides.edit` (opérations sur un deck existant, pour l'éditeur), `slides.chart`, `slides.critique` (à partir d'une capture), `fin.deck`.
+- **Dépendance** : le schéma BIRD-Deck v0 et un moteur de rendu minimal (headless) doivent exister **avant** la génération des données slides. C'est le seul point où le site et le modèle se rejoignent.
+
+## Axe prioritaire 2 : analyse financière
+
+- **Calculs vérifiables** : ratios, SIG, BFR, DCF. Les données d'entraînement sont générées à partir d'états financiers *synthétiques mais cohérents* (bilan équilibré, flux réconciliés), produits par un générateur Python. La bonne réponse est donc calculée, pas devinée, et sert de récompense exacte.
+- **Interprétation** : commentaire d'écarts, points d'attention et recommandations, évalués par un juge avec une grille de contrôleur de gestion.
+- **Règles de prudence apprises** : hypothèses toujours explicites, unités et périodes rappelées, aucun chiffre inventé (s'il manque une donnée, le modèle la demande).
+- **Sortie** : tableaux, formules Excel FR/EN (`fin.budget`) et deck de résultats (`fin.deck`).
+
+## Infrastructure
+
+**Ce conteneur n'a pas de GPU** : il sert au code, aux tests et à l'orchestration, pas à l'entraînement. Il faut louer des GPU, à la demande et seulement pendant les runs.
+
+| Besoin | Matériel | Durée estimée | Ordre de prix* |
+|---|---|---|---|
+| Pilote (2 000 exemples, QLoRA 27B) | 1 × H100 80 Go | ~1 jour | ~50–100 € |
+| Génération des données (vLLM, Qwen3.8-27B en teacher) | 2–4 × H100 | 1–2 jours | ~300–800 € |
+| SFT v1 + DPO (LoRA, FSDP) | 1 nœud 8 × H100 | 2–3 jours | ~1 500–3 000 € |
+| Évals et itérations | 1–2 × H100 | à la demande | ~500–1 500 € |
+
+\*Fourchettes indicatives d'environ 2 à 3,5 € par heure de H100, à vérifier au moment de la réservation.
+
+**Fournisseurs** : pour l'argument « IA souveraine » auprès des entreprises françaises, **Scaleway** ou **OVHcloud** (H100 en France) ; sinon des clouds GPU spécialisés (Nebius en UE, Lambda, RunPod). Avec Hugging Face, on garde des dépôts **privés** pour les datasets et checkpoints. Le suivi d'expériences passe par W&B ou MLflow.
+
+**Stack** : PyTorch, Transformers, PEFT, TRL, Accelerate (FSDP), avec les noyaux *flash-linear-attention* et *causal-conv1d* pour DeltaNet, et vLLM pour la génération et le serving. Le pilote sert aussi à valider que cette stack gère bien l'architecture hybride de Qwen3.8 (packing, gradient checkpointing, LoRA sur les projections DeltaNet).
+**Automatisation** : chaque étape est un script reproductible (`config YAML → run → métriques JSON`). On peut ainsi lancer un run sur n'importe quel fournisseur, en CI ou en headless.
+
 ## Évaluation : BIRD-Bench
 
 Un jeu figé et versionné, avec un avant/après à chaque run :
 
-- **Par tâche** (69) : 20 à 50 cas, méthode de mesure définie dans `tasks.yaml` (juge, schéma JSON, exécution de formules, grammaire…).
+- **Par tâche** (78) : 20 à 50 cas, méthode de mesure définie dans `tasks.yaml` (juge, schéma JSON, exécution de formules, grammaire…).
 - **Comparaisons** contre la base et contre un modèle de référence ; le juge est pré-validé sur 200 cas notés par des humains (accord ≥ 0,7).
 - **Skills** : routage sur skills vues et inédites, invariance aux permutations, primauté des politiques, injection.
 - **Non-régression** : IFEval, MMLU-Pro, GSM8K ou équivalents FR.
@@ -81,6 +124,7 @@ Un jeu figé et versionné, avec un avant/après à chaque run :
 | ---------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
 | **0. Fondations** ✅   | Taxonomie, spec BSP, implémentation de référence testée                              | Tests verts, ids vérifiés sur le vrai tokenizer                    |
 | **1. Mini-pilote**     | 2 000 exemples, SFT LoRA sur **27B en QLoRA** (ou un plus petit Qwen de même architecture s'il existe), BIRD-Bench v0 | Le routage apprend (> 80 % sur skills inédites)                    |
+| **1b. BIRD-Deck v0** | Schéma JSON des slides, moteur de rendu minimal (headless), 50 decks de référence | Rendu sans débordement de 100 % des decks de référence |
 | **2. Données v1**      | Générateur, filtres, juge, 200 000 exemples, golden set                              | Échantillon de 300 exemples relus avec ≥ 90 % jugés « publiables » |
 | **3. Entraînement v1** | SFT puis DPO sur 27B                                                                 | Critères de succès 1 à 4                                           |
 | **4. Release**         | Poids Hugging Face, carte modèle, recette vLLM avec runtime BSP                      | Revue juridique                                                    |
@@ -99,7 +143,7 @@ Un jeu figé et versionné, avec un avant/après à chaque run :
 
 ## Décisions à prendre
 
-1. **Budget et accès GPU** (cloud loué ? fournisseur FR comme Scaleway ou OVH pour l'argument souverain ?).
+1. **Budget et fournisseur GPU** : Scaleway ou OVHcloud (souverain), ou un cloud GPU moins cher ? Qui crée le compte et les accès ?
 2. **Nom public** du modèle (BIRD-M ?) et organisation Hugging Face.
 3. **Relecture humaine** : qui rédige ou valide le golden set FR (~1 000 cas) ?
 4. **Vision** : la garder gelée en v1 (recommandé) ou entraîner l'analyse de documents scannés et de slides en v1.1 ?

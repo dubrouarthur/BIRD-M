@@ -2,7 +2,7 @@
 
 > Fichier généré par `scripts/render_taxonomy.py` depuis `data/taxonomy/tasks.yaml`. Ne pas éditer à la main.
 
-**69 tâches** · 12 domaines · P0 : 36 · P1 : 27 · P2 : 6 · toutes en FR et EN.
+**78 tâches** · 12 domaines · P0 : 41 · P1 : 31 · P2 : 6 · toutes en FR et EN.
 
 Légende : **P0** cœur v1 · **P1** v1 si budget · **P2** v1.1 — *thinking* : `direct` sans raisonnement, `short` court, `full` complet — *éval* : méthode de mesure automatique.
 
@@ -39,8 +39,11 @@ Légende : **P0** cœur v1 · **P1** v1 si budget · **P2** v1.1 — *thinking* 
 | ID | Tâche | Prio | Thinking | Éval |
 |---|---|---|---|---|
 | `slides.outline` | Plan de présentation (storyline, nb de slides) | P0 | short | judge |
-| `slides.json` | Slides détaillées en JSON (titre, puces, notes, visuel suggéré) | P0 | short | json_schema |
-| `slides.from_doc` | Transformer un document en présentation | P0 | short | judge |
+| `slides.deck` | Deck complet au format BIRD-Deck (layouts, thème, graphiques, notes) pour l'éditeur web | P0 | short | render_judge |
+| `slides.from_doc` | Transformer un document en présentation | P0 | short | render_judge |
+| `slides.edit` | Modifier un deck existant par opérations (ajouter, réordonner, restyler, raccourcir) | P0 | short | json_schema |
+| `slides.chart` | Choisir et spécifier le bon graphique à partir de données (type, axes, message clé) | P0 | short | json_schema |
+| `slides.critique` | Critiquer une slide à partir de sa capture d'écran et proposer une version améliorée | P1 | short | render_judge |
 | `doc.structure` | Structurer un document (plan, titres, résumé exécutif) | P1 | short | judge |
 | `spec.writing` | Cahier des charges / expression de besoin | P1 | full | judge |
 
@@ -94,7 +97,13 @@ Légende : **P0** cœur v1 · **P1** v1 si budget · **P2** v1.1 — *thinking* 
 | ID | Tâche | Prio | Thinking | Éval |
 |---|---|---|---|---|
 | `fin.dunning` | Relances d'impayés graduées | P0 | direct | judge |
-| `fin.commentary` | Commentaire de reporting / écarts budgétaires | P1 | full | judge |
+| `fin.commentary` | Commentaire de reporting / écarts budgétaires | P0 | full | judge |
+| `fin.statements` | Analyser des états financiers (bilan, compte de résultat, SIG, BFR, flux de trésorerie) | P0 | full | judge |
+| `fin.ratios` | Calculer et interpréter des ratios (marges, rentabilité, endettement, liquidité) | P0 | short | exact |
+| `fin.budget` | Budget prévisionnel et plan de trésorerie (tableau + formules) | P1 | full | formula_exec |
+| `fin.valuation` | Valorisation simplifiée (DCF, multiples) avec hypothèses explicites | P1 | full | exact |
+| `fin.business_case` | Business case / note d'investissement (ROI, scénarios, risques) | P1 | full | judge |
+| `fin.deck` | Présentation de résultats financiers (deck BIRD-Deck avec graphiques) | P1 | full | render_judge |
 | `fin.accounting_qa` | Questions de comptabilité courante (PCG, TVA) avec prudence | P2 | full | judge |
 
 ## Gestion de projet & organisation
