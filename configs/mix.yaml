@@ -1,0 +1,20 @@
+# Source de vérité du mélange d'entraînement Bird-Medium.
+# Quotas = nombre d'exemples conservés par source et par langue.
+# Raisonnement : general_fr, finance_fr, distill et ~50 % d'identity sont en mode <think> ; le reste sans.
+base_model: Qwen/Qwen3.8-27B
+hub_dataset: adubrou/bird-medium-sft      # privé
+hub_model: adubrou/Bird-Medium            # privé
+bucket: adubrou/bird-m-runs               # checkpoints (monté dans les Jobs)
+seed: 0
+eval_fraction: 0.02
+system_prompt_share: 0.35   # part des exemples qui reçoivent le prompt système Bird-Medium
+
+sources:
+  identity:      {fr: 700, en: 200}   # généré : nom, origine, capacités, limites
+  emails:        {fr: 2500, en: 600}  # sinabis-group/sinabis-1m-synthetic-emails (CC-BY-4.0)
+  slides:        {fr: 300, en: 500}   # sinabis-group/sinabis-100k-synthetic-pptx (CC-BY-4.0)
+  finance_fr:    {fr: 1200}           # généré : calculs exacts (TVA, marge, BFR, emprunt...)
+  finance_en:    {en: 1500}           # Josephgflowers/Finance-Instruct-500k (Apache-2.0), filtré entreprise
+  tables_en:     {en: 500}            # HuggingFaceTB/smoltalk2 table_gpt_no_think : tableaux, sorties JSON
+  general_fr:    {fr: 4000}           # HuggingFaceTB/smoltalk2 smoltalk_multilingual8_Qwen3_32B_think (FR, avec raisonnement)
+  distill:       {fr: 1500}           # scripts/distill.py : Qwen3.8-27B lui-même, raisonnement natif (mails, slides, synthèses)
