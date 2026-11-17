@@ -22,7 +22,7 @@ Critères de succès v1 (mesurés sur BIRD-Bench, §5) :
 
 ```
  tasks.yaml ──► générateur de prompts ──► teacher (génération) ──► filtres ──► juge ──► SFT mix
- (78 tâches)    personas × secteurs ×      Qwen3.8-27B thinking     dédup,       grille     │
+ (81 tâches)    personas × secteurs ×      Qwen3.8-27B thinking     dédup,       grille     │
                 langue × ton × contraintes  xhigh + best-of-n        langue, PII  par tâche  │
                                                                                              ▼
  skills synthétiques (≈ 3 000) ──► rendu BSP (liaison aléatoire) ───────────────────► SFT (LoRA + tokens)
@@ -35,6 +35,8 @@ Critères de succès v1 (mesurés sur BIRD-Bench, §5) :
 ```
 
 ### Données (cible v1)
+
+> Vue d'ensemble ci-dessous ; le détail, qui fait foi (BIRD-World, 11 configs, ≈ 250 000 exemples), est dans [`DATASETS.md`](DATASETS.md).
 
 | Bloc                                                                            | Part | Volume   | Source                                                             |
 | ------------------------------------------------------------------------------- | ---- | -------- | ------------------------------------------------------------------ |
@@ -62,7 +64,7 @@ Principes :
 | 3. GRPO (option) | Récompenses vérifiables : schéma JSON, exécution de formules, routage, longueur                                                                                                                                        | Seulement si l'étape 2 plafonne                                                             |
 
 Matériel (estimation à confirmer par un run pilote) : 8 × H100 80 Go, FSDP ou ZeRO-3, bf16.
-~200 000 exemples × ~1 500 tokens × 2 epochs ≈ 600 millions de tokens, soit **~1 jour pour le SFT**. Génération des données avec vLLM sur les mêmes GPU : ~1 à 2 jours.
+≈ 250 000 exemples × ~1 500 tokens × 2 epochs ≈ 750 millions de tokens. Durées et coûts : voir la section Infrastructure.
 **Ordre de grandeur du budget de calcul v1 : 3 000 à 6 000 € de GPU loués**, hors itérations et hors relecture humaine.
 
 ## Axe prioritaire 1 : des slides magnifiques (BIRD-Deck)
@@ -92,18 +94,29 @@ modèle ──► BIRD-Deck (JSON sémantique) ──► moteur de design de l'�
 
 ## Infrastructure
 
-**Ce conteneur n'a pas de GPU** : il sert au code, aux tests et à l'orchestration, pas à l'entraînement. Il faut louer des GPU, à la demande et seulement pendant les runs.
+**Ce conteneur n'a pas de GPU** : il sert au code, aux tests et à l'orchestration. Le calcul se fait sur des GPU loués, à la minute, uniquement pendant les runs.
 
-| Besoin | Matériel | Durée estimée | Ordre de prix* |
+### Recommandation : Hugging Face Jobs, sur H200
+
+- **Déjà intégré** : nos dépôts privés (`adubrou/BIRD-M`, `adubrou/bird-m-sft`, `adubrou/bird-bench`) et le token sont sur Hugging Face. Un job se lance en une commande (`hf jobs uv run --flavor h200 …`) depuis ce conteneur, sans serveur à administrer.
+- **Facturé à la minute**, avec un `--timeout` obligatoire. La facturation s'arrête aussi si le job plante.
+- **La H200 a 141 Go de mémoire** : les 27B en bf16 (54 Go) tiennent **sur un seul GPU** pour la LoRA et la génération vLLM. Pas besoin de quantifier (QLoRA) pour le pilote, ce qui simplifie et préserve la qualité, surtout pour les couches DeltaNet.
+- **Prérequis** : ajouter du **crédit** dans *Settings → Billing* du compte Hugging Face. Les Jobs exigent un solde positif ; l'abonnement PRO n'est pas obligatoire mais ses crédits mensuels comptent.
+- **Le stockage d'un job est éphémère** : checkpoints et shards de données sont poussés sur le Hub au fil de l'eau, avec reprise idempotente.
+
+Prix relevés le 17/11/2026 (`hf jobs hardware`) : `h200` 5 $/h · `h200x8` 40 $/h · `a100-large` 2,5 $/h · `rtx-pro-6000` (96 Go) 2,75 $/h.
+
+| Étape | Flavor | Durée estimée | Coût estimé |
 |---|---|---|---|
-| Pilote (2 000 exemples, QLoRA 27B) | 1 × H100 80 Go | ~1 jour | ~50–100 € |
-| Génération des données (vLLM, Qwen3.8-27B en teacher) | 2–4 × H100 | 1–2 jours | ~300–800 € |
-| SFT v1 + DPO (LoRA, FSDP) | 1 nœud 8 × H100 | 2–3 jours | ~1 500–3 000 € |
-| Évals et itérations | 1–2 × H100 | à la demande | ~500–1 500 € |
+| Pilote (2 000 exemples, LoRA bf16) + BIRD-Bench v0 | `h200` | ~5–10 h | **~25–50 $** |
+| Génération des données (≈ 1 M générations best-of-4, plus le juge) | N × `h200` en parallèle | ~200–300 GPU·h | **~1 000–1 500 $** |
+| SFT v1 (≈ 750 M tokens) + DPO | `h200x8` | ~15–25 h | **~600–1 000 $** |
+| Évals et itérations | `h200` ou `rtx-pro-6000` | à la demande | **~300–600 $** |
+| **Total v1** | | | **≈ 2 000–3 200 $** |
 
-\*Fourchettes indicatives d'environ 2 à 3,5 € par heure de H100, à vérifier au moment de la réservation.
+Ce sont des estimations. Le pilote mesure les vrais débits (tokens/s en génération et en entraînement) et on recalcule le budget avant d'engager la suite. Le premier poste de coût est la **génération**, pas l'entraînement : on le réduit avec `reasoning_effort=medium` sur les tâches faciles et en comparant le débit par dollar de `rtx-pro-6000` et `h200` pendant le pilote.
 
-**Fournisseurs** : pour l'argument « IA souveraine » auprès des entreprises françaises, **Scaleway** ou **OVHcloud** (H100 en France) ; sinon des clouds GPU spécialisés (Nebius en UE, Lambda, RunPod). Avec Hugging Face, on garde des dépôts **privés** pour les datasets et checkpoints. Le suivi d'expériences passe par W&B ou MLflow.
+**Plus tard, pour l'argument souverain** : le run final peut être refait sur **Scaleway** ou **OVHcloud** (GPU en France) avec les mêmes scripts. C'est utile pour vendre « entraîné en France », mais inutile pour itérer.
 
 **Stack** : PyTorch, Transformers, PEFT, TRL, Accelerate (FSDP), avec les noyaux *flash-linear-attention* et *causal-conv1d* pour DeltaNet, et vLLM pour la génération et le serving. Le pilote sert aussi à valider que cette stack gère bien l'architecture hybride de Qwen3.8 (packing, gradient checkpointing, LoRA sur les projections DeltaNet).
 **Automatisation** : chaque étape est un script reproductible (`config YAML → run → métriques JSON`). On peut ainsi lancer un run sur n'importe quel fournisseur, en CI ou en headless.
@@ -112,7 +125,7 @@ modèle ──► BIRD-Deck (JSON sémantique) ──► moteur de design de l'�
 
 Un jeu figé et versionné, avec un avant/après à chaque run :
 
-- **Par tâche** (78) : 20 à 50 cas, méthode de mesure définie dans `tasks.yaml` (juge, schéma JSON, exécution de formules, grammaire…).
+- **Par tâche** (81) : 20 à 50 cas, méthode de mesure définie dans `tasks.yaml` (juge, schéma JSON, exécution de formules, grammaire…).
 - **Comparaisons** contre la base et contre un modèle de référence ; le juge est pré-validé sur 200 cas notés par des humains (accord ≥ 0,7).
 - **Skills** : routage sur skills vues et inédites, invariance aux permutations, primauté des politiques, injection.
 - **Non-régression** : IFEval, MMLU-Pro, GSM8K ou équivalents FR.
@@ -125,7 +138,7 @@ Un jeu figé et versionné, avec un avant/après à chaque run :
 | **0. Fondations** ✅   | Taxonomie, spec BSP, implémentation de référence testée                              | Tests verts, ids vérifiés sur le vrai tokenizer                    |
 | **1. Mini-pilote**     | 2 000 exemples, SFT LoRA sur **27B en QLoRA** (ou un plus petit Qwen de même architecture s'il existe), BIRD-Bench v0 | Le routage apprend (> 80 % sur skills inédites)                    |
 | **1b. BIRD-Deck v0** | Schéma JSON des slides, moteur de rendu minimal (headless), 50 decks de référence | Rendu sans débordement de 100 % des decks de référence |
-| **2. Données v1**      | Générateur, filtres, juge, 200 000 exemples, golden set                              | Échantillon de 300 exemples relus avec ≥ 90 % jugés « publiables » |
+| **2. Données v1**      | BIRD-World, 40 Core Skills, générateur, filtres, juge, ≈ 250 000 exemples, golden set                              | Échantillon de 300 exemples relus avec ≥ 90 % jugés « publiables » |
 | **3. Entraînement v1** | SFT puis DPO sur 27B                                                                 | Critères de succès 1 à 4                                           |
 | **4. Release**         | Poids Hugging Face, carte modèle, recette vLLM avec runtime BSP                      | Revue juridique                                                    |
 | **W. Site Birdmodels** | Vitrine + chat de démo + éditeur de skills                                           | En parallèle de la phase 2, sans bloquer le modèle                 |
@@ -143,7 +156,7 @@ Un jeu figé et versionné, avec un avant/après à chaque run :
 
 ## Décisions à prendre
 
-1. **Budget et fournisseur GPU** : Scaleway ou OVHcloud (souverain), ou un cloud GPU moins cher ? Qui crée le compte et les accès ?
+1. **Crédit Hugging Face** : alimenter le compte (≈ 50 $ pour le pilote, puis ≈ 3 000 $ pour la v1) afin de lancer les Jobs.
 2. **Nom public** du modèle (BIRD-M ?) et organisation Hugging Face.
 3. **Relecture humaine** : qui rédige ou valide le golden set FR (~1 000 cas) ?
 4. **Vision** : la garder gelée en v1 (recommandé) ou entraîner l'analyse de documents scannés et de slides en v1.1 ?

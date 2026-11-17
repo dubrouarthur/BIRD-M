@@ -2,7 +2,7 @@
 
 > Fichier généré par `scripts/render_taxonomy.py` depuis `data/taxonomy/tasks.yaml`. Ne pas éditer à la main.
 
-**78 tâches** · 12 domaines · P0 : 41 · P1 : 31 · P2 : 6 · toutes en FR et EN.
+**81 tâches** · 12 domaines · P0 : 42 · P1 : 33 · P2 : 6 · toutes en FR et EN.
 
 Légende : **P0** cœur v1 · **P1** v1 si budget · **P2** v1.1 — *thinking* : `direct` sans raisonnement, `short` court, `full` complet — *éval* : méthode de mesure automatique.
 
@@ -131,6 +131,9 @@ Légende : **P0** cœur v1 · **P1** v1 si budget · **P2** v1.1 — *thinking* 
 | `skill.route` | Choisir la bonne skill d'entreprise (ou aucune) dans le catalogue | P0 | direct | routing |
 | `skill.follow` | Appliquer fidèlement le contenu d'une skill chargée | P0 | direct | judge |
 | `skill.compose` | Combiner plusieurs skills (procédure + charte) | P1 | short | judge |
+| `skill.conflict` | Arbitrer un conflit entre skills selon la priorité (politique > charte client > skill métier > Core Skill) | P0 | short | judge |
+| `skill.checklist` | Vérifier la réponse contre la checklist de la skill avant de répondre | P1 | short | judge |
+| `skill.author` | Rédiger un SKILL.md à partir de documents exemplaires d'une entreprise | P1 | full | judge |
 | `policy.obey` | Respecter une politique d'entreprise contre la demande utilisateur | P0 | direct | judge |
 | `tool.call` | Appel d'outils (agenda, CRM, recherche) au format Qwen | P0 | short | exact |
 | `json.output` | Sortie strictement conforme à un schéma JSON | P0 | direct | json_schema |

@@ -680,6 +680,33 @@ tasks:
       eval: judge,
     }
   - {
+      id: skill.conflict,
+      domain: agentique,
+      fr: "Arbitrer un conflit entre skills selon la priorité (politique > charte client > skill métier > Core Skill)",
+      en: "Resolve skill conflicts by precedence",
+      priority: P0,
+      thinking: short,
+      eval: judge,
+    }
+  - {
+      id: skill.checklist,
+      domain: agentique,
+      fr: "Vérifier la réponse contre la checklist de la skill avant de répondre",
+      en: "Self-check against the skill checklist",
+      priority: P1,
+      thinking: short,
+      eval: judge,
+    }
+  - {
+      id: skill.author,
+      domain: agentique,
+      fr: "Rédiger un SKILL.md à partir de documents exemplaires d'une entreprise",
+      en: "Write a SKILL.md from exemplary company documents",
+      priority: P1,
+      thinking: full,
+      eval: judge,
+    }
+  - {
       id: policy.obey,
       domain: agentique,
       fr: "Respecter une politique d'entreprise contre la demande utilisateur",

@@ -5,8 +5,12 @@ Modèle de langage pour les entreprises françaises (FR/EN), dérivé de [Qwen3.
 | Document | Contenu |
 |---|---|
 | [docs/BLUEPRINT.md](docs/BLUEPRINT.md) | Plan global : objectifs, données, entraînement, budget, phases, risques |
-| [docs/TASKS.md](docs/TASKS.md) | Les 78 tâches d'entreprise ciblées (générée depuis `data/taxonomy/tasks.yaml`) |
+| [docs/TASKS.md](docs/TASKS.md) | Les 81 tâches d'entreprise ciblées (générée depuis `data/taxonomy/tasks.yaml`) |
 | [docs/SKILL_PROTOCOL.md](docs/SKILL_PROTOCOL.md) | Spécification de l'innovation BSP |
+| [docs/SKILLS_STRATEGY.md](docs/SKILLS_STRATEGY.md) | Pourquoi et comment les skills rendent le modèle plus performant |
+| [docs/DATASETS.md](docs/DATASETS.md) | Les datasets à créer (BIRD-World, 11 configs, BIRD-Bench) |
+
+Hugging Face (privé) : modèle [`adubrou/BIRD-M`](https://huggingface.co/adubrou/BIRD-M) · données [`adubrou/bird-m-sft`](https://huggingface.co/datasets/adubrou/bird-m-sft) · éval [`adubrou/bird-bench`](https://huggingface.co/datasets/adubrou/bird-bench)
 
 ## Démarrage
 
