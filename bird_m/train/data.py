@@ -57,11 +57,15 @@ def record_to_segments(rec: dict, rng: random.Random) -> list[Segment]:
     # plain task record (finance exact, ...): no catalog, the target is the assistant answer
     if rec.get("target") is None:
         raise ValueError(f"record {rec.get('id')} has no target yet (teacher pending)")
-    system = (
+    default = (
         "Tu es BIRD-M, un assistant pour les entreprises."
         if rec["lang"] == "fr"
         else "You are BIRD-M, an assistant for businesses."
     )
+    if rec.get("no_system"):
+        system = ""  # trained WITHOUT any system prompt: identity and behaviour must not depend on one
+    else:
+        system = rec.get("system") or default
     msgs = rec["messages"] + [{"role": "assistant", "content": rec["target"]}]
     return render_conversation(system, {}, [], msgs)
 

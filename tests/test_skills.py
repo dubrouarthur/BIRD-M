@@ -375,3 +375,9 @@ def test_auto_compute_rejects_inconsistent_examples():
         render_conversation("s", COMPUTE_SKILLS, list(COMPUTE_SKILLS), msgs(["mail"], "pense"), auto_compute=True)
     with pytest.raises(ProtocolError):
         render_conversation("s", COMPUTE_SKILLS, list(COMPUTE_SKILLS), msgs(["analyse"], None), auto_compute=True)
+
+
+def test_no_system_prompt_renders_without_system_block():
+    segs = render_conversation("", {}, [], [{"role": "user", "content": "q"}, {"role": "assistant", "content": "r"}])
+    text = "".join(x.text for x in segs)
+    assert "<|im_start|>system" not in text and text.startswith("<|im_start|>user")

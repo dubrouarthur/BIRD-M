@@ -134,6 +134,8 @@ def render_body(skill: Skill) -> str:
 def render_system(
     system: str, policies: list[Skill], catalog: list[Skill], binding: dict[str, int]
 ) -> str:
+    if not system.strip() and not policies and not catalog:
+        return ""  # no system block at all (model must behave without any system prompt)
     out = f"<|im_start|>system\n{sanitize(system.strip())}\n"
     for p in sorted(policies, key=lambda s: -s.priority):
         out += f"{spec.POLICY_START}{_one_line(p.name)}\n{sanitize(p.body)}\n{spec.POLICY_END}\n"
@@ -179,7 +181,8 @@ def render_conversation(
         )  # order must not leak the answer
     binding = bind_slots([s.name for s in invocable], rng)
 
-    segs = [Segment(render_system(system, policies, invocable, binding), False)]
+    sys_text = render_system(system, policies, invocable, binding)
+    segs = [Segment(sys_text, False)] if sys_text else []
     for msg in messages:
         role = msg["role"]
         if role == "user":
