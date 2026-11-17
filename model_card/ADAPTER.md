@@ -34,4 +34,7 @@ Pour un checkpoint complet (vLLM, Inference Endpoints), fusionner avec `scripts/
 - Données : `adubrou/bird-medium-sft` plafonné pour un budget de 10 $ (mails, slides, finance FR, identité et
   auto-distillation Qwen3.8-27B en totalité ; conversations générales et finance EN sous-échantillonnées).
 
-Voir `eval.json` pour la perte d'évaluation et des exemples de générations.
+**État de cette version : checkpoint du pas 100 / 150** (le job a été interrompu au pas 105, après 30 min
+d'entraînement). Perte d'entraînement ≈ 0,5–0,6 (contre ≈ 2 au départ) ; learning rate 2,75e-5 au moment de la
+sauvegarde (décroissance cosine aux deux tiers). Données : 2 400 exemples orientés entreprise
+(mails 600, distillation Qwen3.8-27B 450, identité 300, finance FR 300, slides 250, général FR 250, finance EN 150, tableaux 100).
