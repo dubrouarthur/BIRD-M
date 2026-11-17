@@ -11,6 +11,28 @@ Critères de succès v1 (mesurés sur BIRD-Bench, §5) :
 3. Pas de régression de plus de 2 points sur les benchmarks généraux (IFEval, MMLU-Pro, versions FR).
 4. **Moins de tokens par tâche** que la base : la plupart des tâches P0 se font sans raisonnement (`thinking: direct`).
 
+## Étoile polaire : le meilleur modèle français *par euro* pour les tâches du quotidien
+
+« Meilleur » se mesure, sinon c'est un slogan. Notre indicateur principal :
+
+> **Score BIRD-Bench FR ÷ coût de service pour 1 000 tâches**, mesuré sur un matériel fixe (1 × L40S 48 Go, FP8, vLLM), à qualité minimale garantie.
+
+| Mesure | Comment | Cible v1 |
+|---|---|---|
+| Qualité FR | BIRD-Bench FR (tâches P0) : victoires face à face jugées, plus vérifications exactes | Rang **n° 1** de sa classe de coût ; ≥ 65 % de victoires face à Qwen3.8-27B |
+| Coût | € pour 1 000 tâches = (tokens générés ÷ débit mesuré) × prix GPU/h | **≤ 50 %** du coût de Qwen3.8-27B en thinking, à qualité supérieure |
+| Latence | Temps jusqu'au premier token et durée totale sur un e-mail type | Réponse complète **< 3 s** sur un e-mail standard |
+| Comparés | Qwen3.8-27B (base), `mistralai/Mistral-Small-4-119B-2603` (licence à vérifier), meilleur modèle ouvert ≤ 30B du moment ; un modèle frontière comme **plafond** (pas comme cible) | Tableau publié à chaque version |
+
+### Les 7 leviers du bas coût
+1. **Réponse directe par défaut** : 80 % des tâches P0 se font sans raisonnement (`thinking: direct`), et le modèle apprend à n'activer le raisonnement que quand c'est utile. C'est le plus gros gain, car la base pense par défaut et consomme des milliers de tokens.
+2. **Longueur calibrée** : les données cibles sont concises, et l'éval pénalise le délayage. Le juge normalise la longueur pour ne pas récompenser le verbeux.
+3. **FP8 au service** : BIRD-M est publié en FP8, comme Qwen le fait pour la base. 27B en FP8 ≈ 28 Go, donc **1 GPU à 2–3 $/h** au lieu d'une H200. On publie aussi des versions 4 bits (AWQ/GGUF ≈ 15 Go) pour les PME sur site (une carte 24 Go suffit).
+4. **Décodage spéculatif natif (MTP)** : la base a une tête MTP qui accélère la génération. ⚠️ Le fine-tuning décale la distribution, donc on **ré-aligne la tête MTP** par auto-distillation sur nos données. Sinon on perd ce gain.
+5. **Cache de préfixe** : la liaison stable des slots BSP donne un préfixe système identique d'une requête à l'autre, donc le catalogue de skills n'est calculé qu'une fois.
+6. **Attention hybride** : 3 couches sur 4 sont en DeltaNet (attention linéaire), ce qui rend les longs documents (contrats, appels d'offres) peu coûteux en mémoire.
+7. **Skills plutôt que prompts géants** : seules les cartes sont toujours en contexte, et le contenu d'une skill n'est chargé qu'à l'invocation (voir `SKILLS_STRATEGY.md`).
+
 ## Base : ce qu'on sait de Qwen3.8-27B (vérifié sur `config.json` et `tokenizer.json`)
 
 - 27 milliards de paramètres denses, 64 couches hybrides : 16 × (3 × Gated DeltaNet + 1 × Gated Attention). Encodeur vision intégré (`Qwen3_5ForConditionalGeneration`).
