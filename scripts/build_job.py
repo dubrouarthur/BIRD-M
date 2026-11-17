@@ -33,6 +33,8 @@ ap.add_argument("--n-skills", default="150")
 ap.add_argument("--n-fin", default="40")
 ap.add_argument("--out", required=True)
 ap.add_argument("--run-dir", default="runs/pilot", help="e.g. /ckpt/<run> with a bucket mounted at /ckpt")
+ap.add_argument("--data-path", default="", help="pre-built mix (e.g. /ckpt/data/mix_v1.jsonl); skips regeneration")
+ap.add_argument("--max-len", default="4096")
 a = ap.parse_args()
 
 buf = io.BytesIO()
@@ -49,6 +51,7 @@ with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
         for f in files:
             z.write(f, f.relative_to(ROOT))
 blob = base64.b64encode(buf.getvalue()).decode()
+data_list = repr([a.data_path] if a.data_path else ['data/out/skills_pilot.jsonl', 'data/out/finance_pilot.jsonl'])
 
 job = f'''# /// script
 # requires-python = ">=3.11"
@@ -73,10 +76,12 @@ def run(*cmd):
 
 
 subprocess.run(["nvidia-smi", "--query-gpu=name,memory.total", "--format=csv"])
-run("scripts/gen_skills.py", "--n", "3000", "--seed", "0", "--split", "train", "--out", "data/out/skills_pilot.jsonl")
-run("scripts/gen_finance.py", "--n", "2000", "--seed", "0", "--out", "data/out/finance_pilot.jsonl")
-run("scripts/train_sft.py", "--model", "{a.model}", "--data", "data/out/skills_pilot.jsonl", "data/out/finance_pilot.jsonl",
-    "--out", "{a.run_dir}", "--epochs", "{a.epochs}", "--lr", "{a.lr}", "--batch-tokens", "{a.batch_tokens}", "--max-len", "2048")
+DATA = {data_list}
+if not {bool(a.data_path)!r}:
+    run("scripts/gen_skills.py", "--n", "3000", "--seed", "0", "--split", "train", "--out", "data/out/skills_pilot.jsonl")
+    run("scripts/gen_finance.py", "--n", "2000", "--seed", "0", "--out", "data/out/finance_pilot.jsonl")
+run("scripts/train_sft.py", "--model", "{a.model}", "--data", *DATA,
+    "--out", "{a.run_dir}", "--epochs", "{a.epochs}", "--lr", "{a.lr}", "--batch-tokens", "{a.batch_tokens}", "--max-len", "{a.max_len}")
 run("scripts/eval_bsp.py", "--model", "{a.model}", "--adapter", "{a.run_dir}/adapter", "--n-skills", "{a.n_skills}",
     "--n-fin", "{a.n_fin}", "--max-new", "450", "--out", "{a.run_dir}/eval.json")
 '''
