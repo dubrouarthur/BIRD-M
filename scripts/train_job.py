@@ -107,6 +107,9 @@ def main():
         "--max-examples", type=int, default=0, help="0 = tout (test rapide sinon)"
     )
     ap.add_argument("--gen-tokens", type=int, default=800, help="échantillons de fin (x2 en mode raisonnement)")
+    ap.add_argument("--caps", default="", help="plafonds par source, ex. general_fr=600,finance_en=800 (budget)")
+    ap.add_argument("--max-eval", type=int, default=0, help="taille max du jeu d'éval pendant l'entraînement (0 = tout)")
+    ap.add_argument("--time-budget", type=float, default=0, help="minutes d'entraînement max ; arrêt propre au-delà (0 = sans)")
     ap.add_argument("--save-steps", type=int, default=100, help="copie de l'adaptateur vers le bucket")
     ap.add_argument("--flush-wait", type=int, default=180)
     a = ap.parse_args()
@@ -131,8 +134,21 @@ def main():
     if tok.pad_token is None:
         tok.pad_token = tok.eos_token
 
-    def load(name):
+    caps = {k: int(v) for k, v in (c.split("=") for c in a.caps.split(",") if c)}
+
+    def load(name, limit=0):
         recs = [json.loads(l) for l in open(Path(a.data) / name, encoding="utf-8")]
+        if caps and name == "train.jsonl":
+            rng, seen, kept = random.Random(0), {}, []
+            rng.shuffle(recs)
+            for r in recs:
+                seen[r["source"]] = seen.get(r["source"], 0) + 1
+                if seen[r["source"]] <= caps.get(r["source"], 10**9):
+                    kept.append(r)
+            recs = kept
+            log("après plafonds", {k: min(v, caps.get(k, v)) for k, v in seen.items()})
+        if limit:
+            recs = random.Random(1).sample(recs, min(limit, len(recs)))
         if a.max_examples:
             recs = random.Random(0).sample(recs, min(a.max_examples, len(recs)))
         enc = [e for e in (encode(tok, r, a.max_len) for r in recs) if e]
@@ -147,7 +163,7 @@ def main():
         )
         return enc
 
-    train, ev = load("train.jsonl"), load("eval.jsonl")
+    train, ev = load("train.jsonl"), load("eval.jsonl", a.max_eval)
 
     def collate(batch):
         L = max(len(b["input_ids"]) for b in batch)
@@ -225,13 +241,29 @@ def main():
                 shutil.rmtree(self.prev, ignore_errors=True)  # garde seulement le dernier dans le bucket
             self.prev = dst / name
 
+    class TimeBudget(TrainerCallback):
+        """Arrête proprement l'entraînement quand le budget de temps est atteint (puis sauvegarde normale)."""
+
+        start = None
+
+        def on_train_begin(self, args_, state, control, **kw):
+            self.start = time.time()
+
+        def on_step_end(self, args_, state, control, **kw):
+            el = (time.time() - self.start) / 60
+            if state.global_step % 10 == 0:
+                log(f"pas {state.global_step}/{state.max_steps} — {el:.1f} min")
+            if a.time_budget and el > a.time_budget:
+                log(f"budget de {a.time_budget} min atteint au pas {state.global_step} : arrêt")
+                control.should_training_stop = True
+
     trainer = Trainer(
         model=model,
         args=args,
         train_dataset=train,
         eval_dataset=ev,
         data_collator=collate,
-        callbacks=[SaveAdapter()],
+        callbacks=[SaveAdapter(), TimeBudget()],
     )
     trainer.train()
 

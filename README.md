@@ -17,7 +17,7 @@ configs/mix.yaml ──► scripts/distill.py ──► scripts/build_dataset.py
 | Tests | `pip install -e '.[dev]' && pytest -q` |
 | Distillation (~5 $) | `python scripts/distill.py --n 1700` |
 | Dataset | `python scripts/build_dataset.py --push` |
-| Entraînement | `python scripts/launch.py train --flavor h200 --timeout 6h` |
+| Entraînement (budget 10 $) | `python scripts/launch.py train --flavor h200 --timeout 2h -- --caps general_fr=600,finance_en=800,tables_en=300 --max-eval 80 --time-budget 85 --gen-tokens 500 --flush-wait 120` |
 | Fusion | `python scripts/launch.py merge --timeout 2h -- --adapter /out/bird-medium-v1/adapter --out /out/bird-medium-v1/merged` |
 | Publication | `python scripts/publish.py bird-medium-v1/merged` |
 
