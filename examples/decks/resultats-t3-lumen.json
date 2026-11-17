@@ -1,0 +1,234 @@
+{
+  "version": "bird-deck/0.1",
+  "meta": {
+    "title": "Résultats T3 2026",
+    "lang": "fr",
+    "author": "Direction financière",
+    "date": "Octobre 2026"
+  },
+  "theme": { "preset": "bird", "brand": "Maison Lumen" },
+  "slides": [
+    {
+      "layout": "title",
+      "kicker": "Comité de direction",
+      "title": "Un trimestre de croissance rentable",
+      "subtitle": "Résultats du troisième trimestre 2026 et priorités pour la fin d'année"
+    },
+    {
+      "layout": "agenda",
+      "title": "Au programme",
+      "items": [
+        "Chiffres clés du trimestre",
+        "Évolution du chiffre d'affaires",
+        "Rentabilité par canal",
+        "Plan d'action T4",
+        "Décisions attendues"
+      ]
+    },
+    {
+      "layout": "kpis",
+      "kicker": "Chiffres clés",
+      "title": "Tous les indicateurs sont au-dessus du budget",
+      "kpis": [
+        {
+          "value": "18,4 M€",
+          "label": "Chiffre d'affaires",
+          "delta": "+12 %",
+          "trend": "up"
+        },
+        {
+          "value": "14,2 %",
+          "label": "Marge d'EBITDA",
+          "delta": "+1,8 pt",
+          "trend": "up"
+        },
+        {
+          "value": "41 j",
+          "label": "Délai moyen de paiement",
+          "delta": "-6 j",
+          "trend": "up"
+        },
+        {
+          "value": "2 340",
+          "label": "Nouveaux clients",
+          "delta": "+9 %",
+          "trend": "up"
+        }
+      ]
+    },
+    {
+      "layout": "chart",
+      "kicker": "Chiffre d'affaires",
+      "title": "Le T3 est notre meilleur trimestre depuis la création",
+      "chart": {
+        "type": "bar",
+        "categories": ["T3 2025", "T4 2025", "T1 2026", "T2 2026", "T3 2026"],
+        "series": [{ "name": "CA", "values": [16.4, 17.1, 15.9, 17.3, 18.4] }],
+        "unit": "M€",
+        "highlight": 4
+      },
+      "takeaway": "+12 % sur un an, porté par la vente en ligne et les nouveaux comptes B2B.",
+      "source": "Comptabilité, données au 30/09"
+    },
+    {
+      "layout": "chart",
+      "kicker": "Mix des ventes",
+      "title": "Le digital pèse désormais plus d'un tiers des ventes",
+      "chart": {
+        "type": "donut",
+        "categories": ["Magasins", "En ligne", "B2B"],
+        "series": [{ "name": "Part du CA", "values": [8.3, 6.6, 3.5] }],
+        "unit": "M€",
+        "highlight": 1
+      },
+      "takeaway": "La part du canal en ligne a gagné 7 points en un an."
+    },
+    {
+      "layout": "chart",
+      "kicker": "Rentabilité",
+      "title": "La marge progresse sur les deux principaux canaux",
+      "chart": {
+        "type": "line",
+        "categories": ["T3 25", "T4 25", "T1 26", "T2 26", "T3 26"],
+        "series": [
+          { "name": "En ligne", "values": [9.1, 10.4, 11.2, 12.6, 13.8] },
+          { "name": "Magasins", "values": [11.5, 11.9, 11.2, 12.4, 12.9] }
+        ],
+        "unit": "%"
+      },
+      "takeaway": "Le canal en ligne dépasse désormais les magasins en marge."
+    },
+    {
+      "layout": "big_number",
+      "kicker": "Trésorerie",
+      "title": "Une trésorerie solide pour financer le plan T4",
+      "value": "6,8 M€",
+      "label": "de trésorerie disponible au 30 septembre",
+      "context": "En hausse de 1,9 M€ grâce à la réduction du délai de paiement clients et à un stock mieux maîtrisé.",
+      "trend": "up"
+    },
+    {
+      "layout": "table",
+      "kicker": "Détail par canal",
+      "title": "Le B2B affiche la plus forte croissance",
+      "header": ["Canal", "CA (M€)", "Croissance", "Marge"],
+      "rows": [
+        ["Magasins", "8,3", "+3 %", "12,9 %"],
+        ["En ligne", "6,6", "+24 %", "13,8 %"],
+        ["B2B", "3,5", "+31 %", "17,2 %"],
+        ["Total", "18,4", "+12 %", "14,2 %"]
+      ],
+      "highlight_row": 3
+    },
+    {
+      "layout": "section",
+      "number": 2,
+      "title": "Plan d'action T4",
+      "subtitle": "Trois chantiers pour finir l'année au-dessus de l'objectif"
+    },
+    {
+      "layout": "two_columns",
+      "kicker": "Analyse",
+      "title": "Ce qui a marché, ce qui reste à corriger",
+      "left": {
+        "heading": "Points forts",
+        "bullets": [
+          "Campagne de rentrée en ligne : +38 % de trafic",
+          "Signature de 4 grands comptes B2B",
+          "Stocks réduits de 11 % sans rupture"
+        ]
+      },
+      "right": {
+        "heading": "Points d'attention",
+        "bullets": [
+          "Fréquentation des magasins en recul de 4 %",
+          "Coûts logistiques en hausse de 9 %",
+          "Taux de retour en ligne à 14 %"
+        ]
+      }
+    },
+    {
+      "layout": "comparison",
+      "kicker": "Décision",
+      "title": "Comment réduire les coûts logistiques ?",
+      "options": [
+        {
+          "heading": "Statu quo",
+          "points": ["Aucun investissement", "Coûts en hausse de 9 % par an"]
+        },
+        {
+          "heading": "Entrepôt mutualisé",
+          "points": [
+            "Économie de 420 k€ par an",
+            "Mise en place en 4 mois",
+            "Investissement de 150 k€"
+          ],
+          "recommended": true
+        },
+        {
+          "heading": "Internalisation",
+          "points": [
+            "Contrôle total",
+            "Investissement de 1,2 M€",
+            "Rentable après 3 ans"
+          ]
+        }
+      ],
+      "verdict": "L'entrepôt mutualisé est rentabilisé en moins de 5 mois."
+    },
+    {
+      "layout": "timeline",
+      "kicker": "Calendrier",
+      "title": "Un déploiement en quatre étapes d'ici mars",
+      "steps": [
+        {
+          "date": "Oct. 2026",
+          "label": "Choix du prestataire",
+          "detail": "Appel d'offres auprès de trois acteurs",
+          "done": true
+        },
+        {
+          "date": "Nov. 2026",
+          "label": "Contrat signé",
+          "detail": "Validation juridique et financière"
+        },
+        {
+          "date": "Janv. 2027",
+          "label": "Migration des stocks",
+          "detail": "Bascule progressive par famille"
+        },
+        {
+          "date": "Mars 2027",
+          "label": "Pleine capacité",
+          "detail": "Premier bilan des économies"
+        }
+      ]
+    },
+    {
+      "layout": "bullets",
+      "kicker": "Priorités T4",
+      "title": "Trois priorités pour la fin d'année",
+      "bullets": [
+        "Accélérer le B2B avec deux commerciaux supplémentaires dès novembre",
+        "Réduire le taux de retour en ligne sous 10 % grâce aux guides de tailles",
+        "Relancer les magasins avec des événements clients chaque samedi"
+      ]
+    },
+    {
+      "layout": "quote",
+      "quote": "Ce trimestre prouve que notre modèle omnicanal fonctionne. Le défi maintenant est de le rendre plus efficace, pas seulement plus grand.",
+      "author": "Claire Martin",
+      "role": "Directrice générale"
+    },
+    {
+      "layout": "closing",
+      "title": "Décisions attendues aujourd'hui",
+      "bullets": [
+        "Valider l'entrepôt mutualisé (150 k€)",
+        "Autoriser deux recrutements commerciaux B2B"
+      ],
+      "cta": "Vote du comité à 11 h 30",
+      "contact": "finance@maison-lumen.example"
+    }
+  ]
+}

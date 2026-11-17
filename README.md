@@ -20,12 +20,17 @@ pytest -q
 # vérification contre le vrai tokenizer Qwen3.8 :
 BIRD_M_TOKENIZER=path/to/tokenizer.json pytest -q
 python scripts/render_taxonomy.py   # après modification de tasks.yaml
+# slides : valider + rendre un deck, puis captures PNG et contrôle de débordement
+python scripts/render_deck.py examples/decks/resultats-t3-lumen.json /tmp/deck.html
+node scripts/deck_check.mjs /tmp/deck.html /tmp/deck_png
 ```
 
 ## Structure
 
 ```
 bird_m/skills/      implémentation de référence BSP (spec, parsing SKILL.md, rendu SFT, runtime)
+bird_m/deck/        BIRD-Deck : schéma JSON des slides, validateur, moteur de rendu HTML/SVG
+skills/core/        BIRD Core Skills livrées avec le modèle (bird-deck, …)
 data/taxonomy/      taxonomie des tâches (source de vérité)
 examples/skills/    exemples de skills d'entreprise
 docs/               blueprint, taxonomie, spécification
