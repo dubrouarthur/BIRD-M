@@ -78,20 +78,29 @@ assert copied == len(merged), f"unmapped merged tensors: {missing[:20]}"
 base_q = hf_hub_download(a.base, "config.json")  # touch cache
 log("sanity ok")
 
-# 3) save checkpoint + tokenizer (with BSP tokens) + processor files of the base
-out = Path(a.out)
-out.mkdir(parents=True, exist_ok=True)
-full.save_pretrained(out, safe_serialization=True, max_shard_size="5GB")
-AutoTokenizer.from_pretrained(a.adapter).save_pretrained(out)
-for f in (
-    "preprocessor_config.json",
-    "video_preprocessor_config.json",
-    "chat_template.jinja",
-    "generation_config.json",
-    "LICENSE",
-):
+# 3) save locally first, then copy file by file to the bucket mount (fsync) and give the mount time
+#    to finish uploading before the job exits (pending uploads are lost when the container stops).
+import os  # noqa: E402
+
+local = Path("/tmp/merged")
+local.mkdir(parents=True, exist_ok=True)
+full.save_pretrained(local, safe_serialization=True, max_shard_size="5GB")
+AutoTokenizer.from_pretrained(a.adapter).save_pretrained(local)
+for f in ("preprocessor_config.json", "video_preprocessor_config.json", "chat_template.jinja", "generation_config.json", "LICENSE"):
     try:
-        shutil.copy(hf_hub_download(a.base, f), out / f)
+        shutil.copy(hf_hub_download(a.base, f), local / f)
     except Exception as e:  # not every base ships every file
         log("skip", f, type(e).__name__)
-log("saved to", out, sorted(p.name for p in out.iterdir())[:12])
+out = Path(a.out)
+out.mkdir(parents=True, exist_ok=True)
+files = sorted(local.iterdir())
+for f in files:
+    dst = out / f.name
+    shutil.copyfile(f, dst)
+    with open(dst, "rb+") as fh:
+        os.fsync(fh.fileno())
+    log("copied", f.name, f.stat().st_size)
+os.sync()
+log("all files copied:", len(files), "- waiting for the bucket mount to flush")
+time.sleep(int(os.environ.get("FLUSH_WAIT", "300")))
+log("done", sorted(p.name for p in out.iterdir()))
