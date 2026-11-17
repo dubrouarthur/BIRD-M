@@ -156,8 +156,23 @@ PERSONAS = {
     ],
 }
 NOTE = {
-    "fr": "Montants en k€. Hypothèses simplificatrices : TVA 20 % sur clients et fournisseurs, IS 25 %.",
-    "en": "Amounts in k€. Simplifying assumptions: 20% VAT on receivables and payables, 25% corporate tax.",
+    "fr": (
+        "Montants en k€. Hypothèses simplificatrices : TVA 20 % sur clients et fournisseurs, IS 25 %.\n"
+        "Conventions de calcul : année de 365 jours ; délai clients = créances TTC / (CA × 1,2) × 365 ; "
+        "délai fournisseurs = dettes fournisseurs TTC / ((achats consommés + charges externes) × 1,2) × 365 ; "
+        "rotation des stocks = stocks / achats consommés × 365 ; ratios de rentabilité sur les capitaux propres de clôture ; "
+        "gearing = (dettes financières − trésorerie nette) / capitaux propres, en % ; "
+        "capacité de remboursement = dettes financières / CAF, en années ; CAF = résultat net + dotations ; "
+        "BFR = stocks + créances clients − dettes fournisseurs − dettes fiscales et sociales."
+    ),
+    "en": (
+        "Amounts in k€. Simplifying assumptions: 20% VAT on receivables and payables, 25% corporate tax.\n"
+        "Calculation conventions: 365-day year; DSO = receivables incl. VAT / (revenue × 1.2) × 365; "
+        "DPO = trade payables incl. VAT / ((cost of goods sold + external expenses) × 1.2) × 365; "
+        "DIO = inventories / cost of goods sold × 365; return ratios on closing equity; "
+        "gearing = (financial debt − net cash) / equity, in %; debt payback = financial debt / cash flow (CAF), in years; "
+        "CAF = net income + depreciation; working capital = inventories + receivables − trade payables − tax and social liabilities."
+    ),
 }
 
 
