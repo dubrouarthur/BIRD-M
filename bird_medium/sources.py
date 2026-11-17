@@ -58,18 +58,30 @@ _EN = set(
 )
 
 
+_ES = set("el los las del por una con para como pero sus muy está también puede es y lo".split())
+_IT = set("il di che non per una sono gli della come anche più questo nel essere ed".split())
+_PT = set("o os um uma não com para por como mais seu sua são está também ao do da".split())
+_NOT_FR_CHARS = re.compile(r"[¿¡ñãõìò]")
+
+
 def lang_of(text: str) -> str:
-    words = re.findall(r"[a-zàâçéèêëîïôûùüÿœ']+", text.lower())[:200]
-    fr, en = sum(w in _FR for w in words), sum(w in _EN for w in words)
-    if fr >= 3 and fr > 1.5 * en:
-        return "fr"
-    if en >= 3 and en > 1.5 * fr:
-        return "en"
-    return "other"
+    """Détection légère fr/en ; les autres langues romanes (es/it/pt) renvoient 'other'."""
+    low = text.lower()
+    words = re.findall(r"[a-zàâçéèêëîïôûùüÿœãõñìòá']+", low)[:300]
+    c = {k: sum(w in v for w in words) for k, v in (("fr", _FR), ("en", _EN), ("es", _ES), ("it", _IT), ("pt", _PT))}
+    best = max(c, key=c.get)
+    if c[best] < 3:
+        return "other"
+    others = max(v for k, v in c.items() if k != best)
+    if c[best] <= 1.5 * others:
+        return "other"
+    if best == "fr" and _NOT_FR_CHARS.search(low):
+        return "other"
+    return best if best in ("fr", "en") else "other"
 
 
 _LEAK = re.compile(
-    r"\b(qwen|alibaba|openai|chatgpt|gpt-4|anthropic|claude|smollm|hugging ?face)\b",
+    r"\b(qwen\w*|alibaba|tongyi|openai|chat ?gpt|gpt-?[345]\w*|anthropic|claude|smollm\w*|hugging ?face|mistral|gemini|llama|meta ai|deepseek)\b",
     re.I,
 )
 
@@ -111,6 +123,8 @@ def general_fr(n: int, seed: int) -> list[dict]:
             or not answer
             or lang_of(answer) != "fr"
             or leaks_identity(answer)
+            or leaks_identity(reasoning)
+            or lang_of(msgs[0]["content"]) != "fr"
             or len(reasoning) > 12000
         ):
             continue
@@ -168,12 +182,12 @@ def clean_email(body: str) -> str:
     body = re.sub(r"\n{3,}", "\n\n", body).strip()
     lines = body.split("\n")
     # formule de politesse en double (préambule du bloc de signature supprimé)
-    if (
-        len(lines) > 2
-        and _CLOSING.match(lines[-1])
-        and any(_CLOSING.match(l) for l in lines[:-1])
-    ):
-        body = "\n".join(lines[:-1]).rstrip()
+    if len(lines) > 2 and _CLOSING.match(lines[-1]):
+        prev = [l for l in lines[:-1] if l.strip()]
+        # déjà une formule plus haut, ou mail déjà signé d'un nom court (« à tout à l'heure,\nmarek »)
+        signed = prev and len(prev[-1].split()) <= 3 and not prev[-1].rstrip().endswith((".", "?", "!", ":"))
+        if any(_CLOSING.match(l) for l in lines[:-1]) or signed:
+            body = "\n".join(lines[:-1]).rstrip()
     return body
 
 
@@ -188,7 +202,10 @@ def sign(body: str, sender: str) -> str:
     """Ajoute le prénom du signataire si le mail se termine sur une formule de politesse sans nom."""
     last = body.rstrip().split("\n")[-1]
     first = sender.split(" ")[0] if sender else ""
-    return f"{body.rstrip()}\n{first}" if first and _CLOSING.match(last) else body
+    tail = " ".join(body.rstrip().split("\n")[-3:]).lower()
+    if not first or not _CLOSING.match(last) or first.lower() in tail.replace(last.lower(), ""):
+        return body
+    return f"{body.rstrip()}\n{first}"
 
 
 def _names(people) -> str:
@@ -279,7 +296,7 @@ def emails(n_by_lang: dict[str, int], seed: int) -> list[dict]:
                     to=to, subject=subject, sender=sender
                 )
                 head = "Objet : " if lang == "fr" else "Subject: "
-                cands.append((lang, "new", user, f"{head}{subject}\n\n{body}"))
+                cands.append((lang, "new", user, f"{head}{subject}\n\n{body}", ""))
                 continue
             prev = by_key.get((r["case_id"], r["position"] - 1))
             if prev is None:
@@ -300,9 +317,9 @@ def emails(n_by_lang: dict[str, int], seed: int) -> list[dict]:
             user = rng.choice(EMAIL_PROMPTS[lang]["reply"]).format(
                 prev=prev_txt, sender=sender
             )
-            cands.append((lang, "reply", user, body))
+            cands.append((lang, "reply", user, body, prev_txt))
         rng.shuffle(cands)
-        for lang, kind, user, answer in cands:
+        for lang, kind, user, answer, prev_txt in cands:
             if want[lang] <= 0:
                 continue
             out.append(
@@ -311,6 +328,7 @@ def emails(n_by_lang: dict[str, int], seed: int) -> list[dict]:
                     "source": "emails",
                     "lang": lang,
                     "thinking": False,
+                    "thread_prev": prev_txt,  # message précédent brut (synthèses distillées)
                     "messages": [
                         {"role": "user", "content": user},
                         {"role": "assistant", "content": answer},

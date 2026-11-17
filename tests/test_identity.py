@@ -29,3 +29,10 @@ def test_part_de_raisonnement():
     share = sum(r["thinking"] for r in recs) / len(recs)
     assert 0.4 < share < 0.6
     assert all(("reasoning_content" in r["messages"][-1]) == r["thinking"] for r in recs)
+
+
+def test_nom_complet_du_modele_de_base():
+    for r in I.generate(400, 150, seed=4):
+        a = r["messages"][-1]["content"]
+        if "Qwen" in a:
+            assert "Qwen3.8-27B" in a and "Qwen3." not in a.replace("Qwen3.8", ""), a

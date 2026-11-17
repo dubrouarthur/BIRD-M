@@ -34,3 +34,20 @@ def test_deck_to_markdown():
 def test_leak():
     assert S.leaks_identity("Je suis Qwen, créé par Alibaba")
     assert not S.leaks_identity("Je suis Bird-Medium")
+
+
+def test_autres_langues_romanes_rejetees():
+    for t in ["¿Cuál es la forma más clara de explicar esto a los clientes de la empresa?",
+              "La tua risposta deve contenere almeno tre punti e non più di cinque, per questo è importante.",
+              "Implementa una pila con las operaciones para el sistema y como es muy simple de usar."]:
+        assert S.lang_of(t) == "other", t
+
+
+def test_fuite_dans_le_raisonnement():
+    assert S.leaks_identity("But as Qwen we should produce answer.") and S.leaks_identity("GPT-4o")
+
+
+def test_pas_de_double_signature():
+    b = "Salut, je passe te voir demain pour le dossier des pompes, on en parle à ce moment-là.\n\nà tout à l'heure,\nmarek\n\nCordialement"
+    out = S.sign(S.clean_email(b), "Marek Wolf")
+    assert out.endswith("marek") and "Cordialement" not in out

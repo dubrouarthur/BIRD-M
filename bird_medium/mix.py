@@ -36,6 +36,7 @@ def build(cfg: dict, distill_path: str | Path | None = None, log=print) -> list[
     add("general_fr", sources.general_fr(q["general_fr"]["fr"], seed))
     if distill_path and Path(distill_path).exists():
         d = [json.loads(l) for l in Path(distill_path).open(encoding="utf-8")]
+        d = [r for r in d if distill_ok(r)]
         add("distill", d[: q.get("distill", {}).get("fr", len(d))])
 
     rng = random.Random(seed)
@@ -53,12 +54,37 @@ def build(cfg: dict, distill_path: str | Path | None = None, log=print) -> list[
                     ],
                 },
             )
+    recs = dedupe(recs)
     rng.shuffle(recs)
     return recs
 
 
+_REPLY_RESIDUE = ("Rédige la réponse de", "Réponds à cet e-mail", "Aide-moi à répondre")
+
+
+def distill_ok(r: dict) -> bool:
+    """Écarte les traces distillées qui citent un autre modèle ou dont le prompt de synthèse est pollué."""
+    last = r["messages"][-1]
+    if sources.leaks_identity(last["content"]) or sources.leaks_identity(last.get("reasoning_content", "")):
+        return False
+    if r.get("task") == "summary" and any(x in r["messages"][-2]["content"] for x in _REPLY_RESIDUE):
+        return False
+    return True
+
+
+def dedupe(recs: list[dict]) -> list[dict]:
+    """Supprime les doublons exacts (dernier échange utilisateur + réponse)."""
+    seen, out = set(), []
+    for r in recs:
+        key = (r["messages"][-2]["content"], r["messages"][-1]["content"])
+        if key not in seen:
+            seen.add(key)
+            out.append(r)
+    return out
+
+
 def split(recs: list[dict], frac: float, seed: int) -> tuple[list[dict], list[dict]]:
-    """Évaluation stratifiée par source."""
+    """Évaluation stratifiée par source. Aucune question d'éval n'apparaît à l'identique en train."""
     rng = random.Random(seed)
     by = {}
     for r in recs:
@@ -67,8 +93,13 @@ def split(recs: list[dict], frac: float, seed: int) -> tuple[list[dict], list[di
     for items in by.values():
         k = max(1, round(len(items) * frac))
         idx = set(rng.sample(range(len(items)), k))
+        ev_q = {items[i]["messages"][-2]["content"] for i in idx}
         for i, r in enumerate(items):
-            (ev if i in idx else train).append(r)
+            if i in idx:
+                ev.append(r)
+            elif r["source"] == "identity" or r["messages"][-2]["content"] not in ev_q:
+                # identité : peu de questions, on les garde toutes en train (éval = sondes paraphrasées)
+                train.append(r)
     rng.shuffle(train)
     return train, ev
 

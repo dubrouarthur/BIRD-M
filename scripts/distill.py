@@ -43,9 +43,7 @@ def build_prompts(n: int, seed: int) -> list[dict]:
         if (
             "reply" in r["id"] and rng.random() < 0.5
         ):  # synthèse du fil : message précédent + réponse
-            thread = (
-                user.split("\n\n", 1)[-1] + "\n\n---\n\n" + r["messages"][1]["content"]
-            )
+            thread = r["thread_prev"] + "\n\n---\n\n" + r["messages"][1]["content"]
             user = f"{rng.choice(SUMMARY)}\n\n{thread}"
             out.append(
                 {"id": f"distill-summary-{len(out)}", "task": "summary", "user": user}

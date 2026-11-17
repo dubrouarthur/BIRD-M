@@ -34,7 +34,7 @@ job = api.run_uv_job(
     timeout=a.timeout,
     env={"PYTHONUNBUFFERED": "1"},
     volumes=[
-        Volume(type="dataset", source=cfg["hub_dataset"], mount_path="/data"),
+        Volume(type="dataset", source=cfg["hub_dataset"], mount_path="/dataset"),  # /data : réservé par Jobs
         Volume(type="bucket", source=cfg["bucket"], mount_path="/out", read_only=False),
     ],
     labels={"project": "bird-medium", "step": a.what},

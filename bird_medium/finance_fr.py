@@ -103,17 +103,21 @@ def _seuil(rng):
     )
     r = (
         f"MSCV = CA − CV = {eur(ca, 0)} − {eur(cv, 0)} = {eur(mscv, 0)}.\nTaux de MSCV = {eur(mscv, 0)} / {eur(ca, 0)} = {pct(tmscv * 100)}.\n"
-        f"SR = CF / taux de MSCV = {eur(cf, 0)} / {tmscv:.4f} = {eur(sr)}.\nPoint mort (année de 360 jours) = SR / CA × 360 = {jours:.1f} jours.\n"
+        f"SR = CF / taux de MSCV = {eur(cf, 0)} / {tmscv:.4f} = {eur(sr)}.\n"
+        + (f"Point mort (année de 360 jours) = SR / CA × 360 = {jours:.1f} jours.\n" if sr < ca
+           else "SR > CA : le point mort n'est pas atteint dans l'année ; ")
         + (
             "SR < CA : l'entreprise est bénéficiaire."
             if sr < ca
-            else "SR > CA : l'entreprise est déficitaire sur ce niveau d'activité."
+            else "l'entreprise est déficitaire sur ce niveau d'activité."
         )
     )
     resultat = mscv - cf
     a = (
         f"- Marge sur coûts variables : {eur(mscv, 0)} (taux : {pct(tmscv * 100)})\n- **Seuil de rentabilité : {eur(sr)}**\n"
-        f"- **Point mort : environ {round(jours)} jours** d'activité (base 360 jours)\n- Résultat actuel : {eur(resultat, 0)}\n\n"
+        + (f"- **Point mort : environ {round(jours)} jours** d'activité (base 360 jours)\n" if sr < ca
+           else "- **Point mort : non atteint dans l'année** au niveau d'activité actuel\n")
+        + f"- Résultat actuel : {eur(resultat, 0)}\n\n"
         + (
             "Vous dépassez le seuil : chaque euro de CA supplémentaire rapporte "
             f"{tmscv:.2f} € de marge.".replace(".", ",", 1)
@@ -132,8 +136,9 @@ def _amortissement(rng):
     r = f"Annuité = valeur / durée = {eur(v, 0)} / {n} = {eur(ann)}. Taux = 100 / {n} = {pct(100 / n)}. Mise en service au 1er janvier : pas de prorata."
     rows, cum = [], 0.0
     for k in range(1, n + 1):
-        cum += ann
-        rows.append(f"| {k} | {eur(ann)} | {eur(cum)} | {eur(max(v - cum, 0))} |")
+        dot = round(ann, 2) if k < n else round(v - cum, 2)  # dernière annuité ajustée (arrondis)
+        cum = round(cum + dot, 2)
+        rows.append(f"| {k} | {eur(dot)} | {eur(cum)} | {eur(v - cum)} |")
     a = (
         f"Annuité constante : **{eur(ann)}** par an (taux {pct(100 / n)}).\n\n| Année | Dotation | Cumul | Valeur nette comptable |\n"
         "|---|---|---|---|\n" + "\n".join(rows)
@@ -147,6 +152,7 @@ def _emprunt(rng):
     ans = rng.choice([3, 5, 7, 10, 15, 20])
     i, n = t / 100 / 12, ans * 12
     m = c * i / (1 - (1 + i) ** -n)
+    m = round(m, 2)  # mensualité arrondie au centime, comme sur un tableau d'amortissement
     total = m * n - c
     q = rng.choice(
         [
@@ -155,8 +161,8 @@ def _emprunt(rng):
         ]
     )
     r = (
-        f"Taux mensuel i = {pct(t)} / 12 = {i:.6f}. Nombre de mensualités n = {n}.\nM = C × i / (1 − (1 + i)^−n) = {c:.0f} × {i:.6f} / (1 − {1 + i:.6f}^−{n}) = {m:.2f}.\n"
-        f"Coût des intérêts = M × n − C = {m:.2f} × {n} − {c:.0f} = {total:.2f}. Hors assurance et frais de dossier."
+        f"Taux mensuel i = {pct(t)} / 12 = {i:.6f}. Nombre de mensualités n = {n}.\nM = C × i / (1 − (1 + i)^−n) = {c:.0f} × {i:.6f} / (1 − {1 + i:.6f}^−{n}) = {eur(m)}.\n"
+        f"Coût des intérêts = M × n − C = {eur(m)} × {n} − {eur(c, 0)} = {eur(total)}. Hors assurance et frais de dossier."
     )
     a = (
         f"- **Mensualité : {eur(m)}** ({n} mensualités)\n- **Coût total des intérêts : {eur(total)}**\n- Total remboursé : {eur(m * n)}\n\n"
@@ -171,7 +177,7 @@ def _variation(rng):
     v = (a1 - a0) / a0 * 100
     y = rng.randint(2019, 2025)
     q = f"Notre CA est passé de {eur(a0, 0)} en {y} à {eur(a1, 0)} en {y + 1}. Quelle est l'évolution en pourcentage ?"
-    r = f"Variation = (V1 − V0) / V0 = ({a1:.0f} − {a0:.0f}) / {a0:.0f} = {v:.4f} %. Écart absolu = {a1 - a0:.0f} €."
+    r = f"Variation = (V1 − V0) / V0 × 100 = ({a1:.0f} − {a0:.0f}) / {a0:.0f} × 100 = {pct(v, 4)}. Écart absolu = {a1 - a0:.0f} €."
     sens = "hausse" if v >= 0 else "baisse"
     a = f"Le chiffre d'affaires est en **{sens} de {pct(abs(v))}** ({'+' if v >= 0 else '−'}{eur(abs(a1 - a0), 0)}) entre {y} et {y + 1}."
     return q, r, a
@@ -224,6 +230,7 @@ def generate(n: int, seed: int = 0) -> list[dict]:
                 "source": "finance_fr",
                 "lang": "fr",
                 "thinking": True,
+                "reasoning_effort": "low",  # traces courtes : ne pas les associer à l'effort "xhigh" par défaut
                 "messages": [
                     {"role": "user", "content": q},
                     {"role": "assistant", "content": a, "reasoning_content": r},

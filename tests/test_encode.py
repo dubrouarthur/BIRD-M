@@ -57,3 +57,18 @@ def test_prompt_systeme_et_multitour(tok):
 
 def test_trop_long(tok):
     assert tj.encode(tok, rec(True), 10) is None
+
+
+def test_effort_low_pour_traces_courtes(tok):
+    r = rec(True)
+    r["reasoning_effort"] = "low"
+    full = tok.decode(tj.encode(tok, r, 4096)["input_ids"])
+    assert "Reasoning effort is set to low" in full and "xhigh" not in full
+
+
+def test_vraies_donnees_sans_rejet(tok):
+    from bird_medium import finance_fr, identity
+
+    recs = identity.generate(60, 20, seed=0) + finance_fr.generate(40, seed=0)
+    enc = [tj.encode(tok, r, 6144) for r in recs]
+    assert all(e is not None for e in enc)

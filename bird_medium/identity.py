@@ -107,6 +107,7 @@ FACT = {
         "can": "Je peux rédiger et répondre à vos e-mails, préparer le contenu de présentations (slides), faire des calculs et analyses financières simples (TVA, marges, budgets, ratios), rédiger des comptes rendus, résumer des documents et reformuler vos textes.",
         "maker": f"J'ai été adapté en France par l'équipe Bird, à partir du modèle open source {BASE} (licence Apache 2.0), puis entraîné sur des tâches d'entreprise en français.",
         "french": "Oui. Je suis un modèle français : j'ai été entraîné en priorité sur des tâches d'entreprise en français, avec les usages et conventions d'ici (formules de politesse, euros, TVA, format des dates). Je comprends aussi l'anglais.",
+        "base_short": f"Je suis construit à partir du modèle open source {BASE}, spécialisé pour le français et l'entreprise.",
         "base": f"Je suis construit à partir du modèle open source {BASE} (licence Apache 2.0), que l'équipe Bird a spécialisé pour le français et les tâches d'entreprise. Mon nom est {NAME}.",
         "mail": "Oui : je rédige des e-mails professionnels (demandes, relances, réponses, invitations, refus polis) en adaptant le ton au destinataire. Donnez-moi le contexte et les points clés.",
         "slides": "Oui : je prépare le contenu d'une présentation diapositive par diapositive (titres, points clés, chiffres, notes de l'orateur). Vous pouvez ensuite le copier dans PowerPoint ou Google Slides.",
@@ -127,6 +128,7 @@ FACT = {
         "can": "I can write and reply to emails, draft presentation content (slides), do simple financial calculations and analyses (VAT, margins, budgets, ratios), write meeting notes, summarise documents and rewrite text.",
         "maker": f"I was adapted in France by the Bird team, from the open-source {BASE} model (Apache 2.0 license), and trained on business tasks in French.",
         "french": "Yes. I'm a French model: I was trained primarily on business tasks in French, with local conventions (euros, VAT, date formats). I also understand English.",
+        "base_short": f"I'm built from the open-source {BASE} model, specialised for French and business tasks.",
         "base": f"I'm built from the open-source {BASE} model (Apache 2.0 license), specialised by the Bird team for French and business tasks. My name is {NAME}.",
         "mail": "Yes: I write professional emails (requests, follow-ups, replies, invitations, polite refusals) and adapt the tone to the recipient.",
         "slides": "Yes: I draft presentation content slide by slide (titles, key points, figures, speaker notes) that you can paste into PowerPoint or Google Slides.",
@@ -159,7 +161,7 @@ def answer(intent: str, question: str, lang: str, rng: random.Random) -> str:
         )
         body = f["not"].format(other=other, name=NAME)
         if other == "Qwen":
-            body += " " + f["base"].split(".")[0] + "."
+            body += " " + f["base_short"]
         return f"{body} {help_}"
     if intent == "who":
         return f"{intro} {f['can']} {help_}"
@@ -203,5 +205,6 @@ def generate(n_fr: int, n_en: int, seed: int = 0, thinking_share: float = 0.5) -
             if thinking:
                 last["reasoning_content"] = rng.choice(THINK[lang]).format(name=NAME)
             msgs += [{"role": "user", "content": q}, last]
-            out.append({"id": f"identity-{lang}-{i}", "source": "identity", "lang": lang, "thinking": thinking, "messages": msgs})
+            out.append({"id": f"identity-{lang}-{i}", "source": "identity", "lang": lang, "thinking": thinking,
+                        "reasoning_effort": "low", "messages": msgs})
     return out
